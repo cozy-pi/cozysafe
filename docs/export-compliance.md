@@ -27,6 +27,11 @@ Apple's table (App Store Connect Help, "Export compliance documentation for encr
 France also controls "Secure Storage" apps (ANSSI). Options: file the French declaration,
 or leave France out of the App Store availability until it is filed.
 
+**Filed 2026-11-17** on demarche.numerique.gouv.fr (ANSSI, "Déclaration relative à un moyen
+de cryptologie", as a private person). ANSSI has one month from a complete file; silence
+after that means supply in France is allowed. Then: upload the receipt in App Store
+Connect (App Encryption Documentation), follow steps 3 below, and tick France.
+
 ## United States (BIS)
 
 Mass-market encryption software (likely ECCN 5D992.c, authorization MMKT, License
