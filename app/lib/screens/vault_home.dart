@@ -117,12 +117,15 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   final Map<String, Uint8List> _thumbReady = {};
   /// Photos per row; pinch to change, like Photos.
   /// Library columns (pinch), remembered across launches (owner 2026-10-22).
-  int _cols = _colSteps.contains(int.tryParse(Prefs.read('library-columns') ?? ''))
+  /// Until pinched: four, five on a phone this wide or wider (iPhone Duo's inner
+  /// display, 669 pt; owner 2026-11-17).
+  int? _colsSet = _colSteps.contains(int.tryParse(Prefs.read('library-columns') ?? ''))
       ? int.parse(Prefs.read('library-columns')!)
-      : 4;
+      : null;
+  int get _cols => _colsSet ?? (MediaQuery.sizeOf(context).width >= wideishPhone ? 5 : 4);
   void _setCols(int n) {
     Prefs.write('library-columns', '$n');
-    setState(() => _cols = n);
+    setState(() => _colsSet = n);
   }
   static const _colSteps = [3, 4, 5, 7];
   double _scaleStart = 1;
@@ -3214,8 +3217,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 )
               else
               Positioned(
-                left: 10,
-                right: 10,
+                // No wider than [barMaxWidth], centred under the + (iPhone Duo's inner
+                // display: across its whole width the tabs drifted apart).
+                left: math.max(10, (MediaQuery.sizeOf(context).width - barMaxWidth) / 2),
+                right: math.max(10, (MediaQuery.sizeOf(context).width - barMaxWidth) / 2),
                 bottom: bottom + Ui.edge,
                 child: VaultBar(
                   key: _barKey,

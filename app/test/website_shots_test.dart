@@ -40,6 +40,9 @@ const _devices = _store
     ? {
         'iphone': (Size(402, 874), 62.0, 34.0, 3.0),
         'ipad': (Size(1032, 1376), 24.0, 20.0, 2.0),
+        // iPhone Duo (App Store, 2026-11): outer display 1398x2034, inner 2007x2853 px.
+        'duo-outer': (Size(466, 678), 54.0, 34.0, 3.0),
+        'duo-inner': (Size(669, 951), 54.0, 34.0, 3.0),
         'play': (Size(360, 640), 24.0, 16.0, 3.0),
       }
     : {
