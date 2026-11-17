@@ -275,37 +275,28 @@ void main() {
     expect(find.byKey(const ValueKey('originals-only-copy')), findsNothing);
   });
 
-  testWidgets('tab words grow with the phone\'s text size, up to a limit, and are never cut', (t) async {
+  testWidgets('the vault bar shows icons only, the words kept for tooltips and screen readers', (t) async {
     t.view.physicalSize = const Size(360, 800);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
-    double? fontSizeAt(double scale) {
-      final text = t.widget<Text>(find.descendant(of: find.byKey(const ValueKey('tab-note')), matching: find.byType(Text)));
-      return text.textScaler!.scale(text.style!.fontSize!);
-    }
-
-    for (final scale in [1.0, 1.15, 2.0]) {
-      await t.pumpWidget(_app(Builder(
-        builder: (context) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.bottomCenter,
-              child: VaultBar(
-                section: VaultSection.note,
-                sections: VaultSection.values,
-                home: const SizedBox.square(dimension: 32),
-                onSection: (_) {},
-                // The bar as the vault draws it: the + in the middle, a word under each icon.
-                centre: const SizedBox.square(dimension: centrePlusSize),
-              ),
-            ),
+    for (final centre in [const SizedBox.square(dimension: centrePlusSize), null]) {
+      await t.pumpWidget(_app(Scaffold(
+        body: Align(
+          alignment: Alignment.bottomCenter,
+          child: VaultBar(
+            section: VaultSection.note,
+            sections: VaultSection.values,
+            home: const SizedBox.square(dimension: 32),
+            onSection: (_) {},
+            centre: centre,
           ),
         ),
       )));
       await t.pumpAndSettle();
       expect(t.takeException(), isNull);
-      expect(fontSizeAt(scale), closeTo(11 * scale.clamp(1, tabLabelMaxScale), .01), reason: 'at $scale');
+      expect(find.text('Notes'), findsNothing, reason: 'centre: ${centre != null}');
+      expect(find.byIcon(sectionIcon(VaultSection.note)), findsOneWidget);
+      expect(find.bySemanticsLabel('Notes'), findsOneWidget);
     }
   });
 }

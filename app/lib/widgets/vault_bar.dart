@@ -242,7 +242,7 @@ class VaultBar extends StatelessWidget {
   final Key? tabsKey;
 
   /// The + in the middle of the bar (Settings → Middle, owner 2026-10-24): the sections
-  /// become icons with a small word and share the two sides of it.
+  /// share the two sides of it, icons only.
   final Widget? centre;
 
   final VaultSection section;
@@ -338,15 +338,6 @@ class _CentreTabs extends StatelessWidget {
   final Widget? home;
   final VoidCallback? onHoldHome;
 
-  static IconData _icon(VaultSection s) => switch (s) {
-        VaultSection.home => Icons.home_rounded,
-        VaultSection.note => Icons.book_rounded,
-        VaultSection.library => Icons.photo_library_rounded,
-        VaultSection.audio => Icons.mic_none_rounded,
-        VaultSection.file => Icons.folder_rounded,
-        VaultSection.password => Icons.key_rounded,
-      };
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -374,38 +365,13 @@ class _CentreTabs extends StatelessWidget {
                       onHoldHome!();
                     },
               // One ink, as the phone's own tab bars: the tab on show full ink, the
-              // others faded; a small word under each icon, so no tab has to be guessed.
-              // The section colours stay where kinds are counted (overview, storage).
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 30,
-                    child: Center(
-                      child: s == VaultSection.home && home != null
-                          ? home!
-                          : Icon(_icon(s), size: 26, color: on ? ink : ink.withValues(alpha: .5)),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  // Follows the phone's text size a little (up to 1.3: the bar's height
-                  // holds that), and a word too wide for its tab shrinks to fit rather
-                  // than being cut.
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      sectionLabel(l, s),
-                      maxLines: 1,
-                      softWrap: false,
-                      textScaler: MediaQuery.textScalerOf(context).clamp(minScaleFactor: 1, maxScaleFactor: tabLabelMaxScale),
-                      style: TextStyle(
-                        fontSize: CsType.caption2,
-                        fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-                        color: on ? ink : ink.withValues(alpha: .6),
-                      ),
-                    ),
-                  ),
-                ],
+              // others faded. Icons only (owner 2026-11-17); the word is the tooltip and
+              // the screen reader's label. The section colours stay where kinds are
+              // counted (overview, storage).
+              child: Center(
+                child: s == VaultSection.home && home != null
+                    ? home!
+                    : Icon(sectionIcon(s), size: 28, color: on ? ink : ink.withValues(alpha: .5)),
               ),
             ),
           ),
@@ -462,9 +428,6 @@ class _CentreTabs extends StatelessWidget {
   }
 }
 
-/// How far the words under the tabs grow with the phone's text size.
-const double tabLabelMaxScale = 1.3;
-
 /// The + in the middle of the bar: a little smaller than the bar's other buttons.
 const double centrePlusSize = 46;
 
@@ -476,9 +439,9 @@ int centrePlusSlot(List<VaultSection> sections) => (sections.length + 1) ~/ 2;
 /// the middle ([_CentreTabs] shares each side among its tabs).
 double centrePlusShare(List<VaultSection> sections) => .5;
 
-/// The tabs inside the capsule. The home tab stays put on the left; the others share
-/// the rest equally when their words fit, and scroll sideways (no loop) when they do not
-/// — long labels ("Bibliothèque", "Медиатека") or a small phone (owner 2026-10-21).
+/// The tabs inside the capsule, icons only (owner 2026-11-17; the word is the tooltip).
+/// The home tab stays put on the left; the others share the rest, and scroll sideways
+/// (no loop) on a phone too narrow for them all (owner 2026-10-21).
 class _Tabs extends StatefulWidget {
   const _Tabs({required this.section, required this.sections, required this.home, required this.onPick, this.onHoldHome});
   final VoidCallback? onHoldHome;
@@ -515,8 +478,7 @@ class _TabsState extends State<_Tabs> {
         }
       });
 
-  static const _style = TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700);
-  static const _pad = 16.0;
+  static const _tabW = 60.0;
 
   @override
   Widget build(BuildContext context) {
@@ -525,9 +487,6 @@ class _TabsState extends State<_Tabs> {
     final ink = Theme.of(context).colorScheme.onSurface;
     final homeOn = widget.sections.contains(VaultSection.home) && widget.home != null;
     final rest = widget.sections.where((s) => !(homeOn && s == VaultSection.home)).toList();
-    final scale = MediaQuery.textScalerOf(context);
-    // Measure in the font the tabs are drawn in.
-    final base = DefaultTextStyle.of(context).style;
 
     // `lit`: the tab draws its own pill (scrolling row); otherwise one pill slides
     // under the tabs.
@@ -551,8 +510,7 @@ class _TabsState extends State<_Tabs> {
                 },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
-            width: width,
-            padding: width == null ? const EdgeInsets.symmetric(horizontal: _pad) : EdgeInsets.zero,
+            width: width ?? _tabW,
             decoration: BoxDecoration(
               color: on && lit ? primary.withValues(alpha: .14) : Colors.transparent,
               borderRadius: BorderRadius.circular((Ui.bar - 8) / 2),
@@ -560,14 +518,9 @@ class _TabsState extends State<_Tabs> {
             alignment: Alignment.center,
             child: s == VaultSection.home && widget.home != null
                 ? KeyedSubtree(key: const ValueKey('home-tab'), child: widget.home!)
-                : Text(
-                    sectionLabel(l, s),
-                    maxLines: 1,
-                    softWrap: false,
-                    style: _style.copyWith(
-                      fontWeight: on ? FontWeight.w700 : FontWeight.w600,
-                      color: on ? primary : ink.withValues(alpha: .75),
-                    ),
+                : Tooltip(
+                    message: sectionLabel(l, s),
+                    child: Icon(sectionIcon(s), size: 26, color: on ? primary : ink.withValues(alpha: .6)),
                   ),
           ),
         ),
@@ -577,13 +530,8 @@ class _TabsState extends State<_Tabs> {
     return LayoutBuilder(builder: (context, box) {
       final homeW = homeOn ? Ui.bar : 0.0;
       final room = box.maxWidth - homeW;
-      final need = [
-        for (final s in rest)
-          (TextPainter(text: TextSpan(text: sectionLabel(l, s), style: base.merge(_style)), textDirection: TextDirection.ltr, textScaler: scale)
-                    ..layout())
-                  .width +
-              _pad * 2,
-      ];
+      // Icons only (owner 2026-11-17): every tab the same width.
+      final need = [for (final _ in rest) _tabW];
       final total = need.fold<double>(0, (a, w) => a + w);
       final fits = total <= room;
       // Where the one pill sits (all tabs fit): it slides to the tab tapped, as in

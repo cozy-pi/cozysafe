@@ -77,7 +77,9 @@ Their common points, tried on the `ui-refresh` branch for the owner to compare:
   white did not stand apart); the big title of Settings 34 as on every tab; row names
   17 regular; buttons round-ended.
 - The tabs in one ink with a word under each (five colours and no words: people could
-  not tell the tabs apart). Reverses the tab colours of 2026-10-31.
+  not tell the tabs apart). Reverses the tab colours of 2026-10-31. The words went on
+  2026-11-17 (owner: icons only, both bar layouts); the icons stay one ink, the word is
+  the tooltip and the screen reader's label.
 - A login's password step opens on typing the password in use; making one is second.
 - Creating a vault in the steps' frame (`StepPage`), the title no longer centred and lost.
 - The add card alone in the middle mode too; Keep as big as Delete for the originals.

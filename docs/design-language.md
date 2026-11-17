@@ -16,7 +16,7 @@ Photos does. We learn its layout and sizes; we never copy Apple's icons or artwo
    the colour per kind of item where kinds are counted (storage). Since 2026-10-31
    (owner: more colour in the icons) also: each section's colour on the ways to add
    and the overview's tiles (`sectionColor`, `addWayColor`; the tabs went back to one
-   ink with a word under each, 2026-11-07 review), and the two modes' shields (`topSecretRed`
+   ink, 2026-11-07 review; icons only since 2026-11-17), and the two modes' shields (`topSecretRed`
    with a lock, `privateGreen` with a photo); a vault in Top Secret Mode washes the top
    of its page with a little red (`TopSecretWash`, owner 2026-10-31, in place of a shield
    on the Settings button); each common kind of file its icon and colour
