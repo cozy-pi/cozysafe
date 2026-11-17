@@ -29,7 +29,7 @@ To do:
 - [ ] EU trader status (App Store Connect → Business; Play → App content): not checked yet.
 - [ ] `cozypi.com/.well-known/assetlinks.json` is 404 (Android password managers do not
       link the app to the site).
-- [ ] iPhone Duo (from 1.0.3, built with Xcode 27.1 on GitHub's preview `xcode-27`
+- [ ] iPhone Duo (from 1.0.4, built with Xcode 27.1 on GitHub's preview `xcode-27`
       image): `tools/store-shots` renders `duo-outer` 1398x2034 and `duo-inner` 2007x2853;
       upload them under iPhone Duo in App Store Connect (required from April 2027).
 - [ ] Dependabot: 7 alerts, all in `tools/semgrep-requirements.txt` (a CI tool, not the app).

@@ -4,7 +4,7 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
-## 1.0.3 (2026-11-17)
+## 1.0.4 (2026-11-17)
 
 ### Added
 - iPhone Duo: the app is built with the iOS 27.1 SDK, so the App Store shows it as made
