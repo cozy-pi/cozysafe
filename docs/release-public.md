@@ -3,9 +3,37 @@
 Version 1.0.0, from `main`, to the App Store and Google Play production. Nothing here
 is sent to a store without the owner saying so on the day. Listing text: `store/` (store/README.md).
 
+## Where it stands (2026-11-17)
+
+Done:
+- 1.0.0 (build 1178), 1.0.1 (1180: Android save-to-file and picker fixes) and 1.0.2 (1181:
+  icons-only vault bar) are on TestFlight, Play internal + alpha and GitHub releases.
+- App Store: **1.0.1, build 1180, submitted 2026-11-17, Waiting for Review**, manual release.
+  Free; App Privacy "Data Not Collected"; age 4+; no third-party content; review contact set.
+  Availability: 174 countries, every one except France (China mainland left in on purpose
+  to see what Apple does: it needs a Security Assessment and an AIGC declaration, see below).
+- Google Play: closed test finished; production access applied for 2026-11-17 (Google
+  answers by email, usually within 7 days).
+- France: encryption declaration filed with ANSSI 2026-11-17 (docs/export-compliance.md).
+
+To do:
+- [ ] Apple's answer. Rejected over China mainland → untick it in Pricing and Availability
+      and submit again. Approved → send 1.0.2 (or later) as the first update.
+- [ ] Google grants production access → owner says go → `play-production.yml` with the
+      newest build (1181 today).
+- [ ] Both approved → step 6 (release, website `LIVE = True`).
+- [ ] ANSSI answer, or one month of silence (about 2026-12-17) → France: receipt to App
+      Store Connect, `ITSAppUsesNonExemptEncryption` per docs/export-compliance.md, tick France.
+- [ ] China mainland for good: Security Assessment + AIGC declaration (App Compliance in
+      App Store Connect), or leave it out.
+- [ ] EU trader status (App Store Connect → Business; Play → App content): not checked yet.
+- [ ] `cozypi.com/.well-known/assetlinks.json` is 404 (Android password managers do not
+      link the app to the site).
+- [ ] Dependabot: 7 alerts, all in `tools/semgrep-requirements.txt` (a CI tool, not the app).
+
 ## 0. Before the day
 
-- [ ] Google Play: the closed test has run 14 days with 12 testers (Dashboard shows the count).
+- [x] Google Play: the closed test has run 14 days with 12 testers (Dashboard shows the count).
 - [ ] Google Play → App content: seller (trader) status declared. Shown publicly: the owner fills it in.
 - [ ] Sample photos in `app/test/preview_assets/*.jpg` (free photos, not in git): the
       `library` screenshot needs them. Twelve square ones are enough, for example
@@ -21,7 +49,7 @@ is sent to a store without the owner saying so on the day. Listing text: `store/
 - [x] `.github/workflows/build.yml`, job `release`: the title "(preview)" and the notes
       "Preview build for testing".
 - [x] `CHANGELOG.md`: `## 1.0.0 (date)`.
-- [ ] `flutter gen-l10n && flutter analyze --fatal-infos && flutter test`; `ci` green on main.
+- [x] `flutter gen-l10n && flutter analyze --fatal-infos && flutter test`; `ci` green on main.
 
 ## 2. Build
 
@@ -51,9 +79,9 @@ Output `store/feature-graphic-<en|vi>.png` (Google Play, 1024x500).
 
 ## 4. Google Play
 
-- [ ] Dashboard → Apply for production access: answers in `docs/play-production-answers.txt`
+- [x] Dashboard → Apply for production access (sent 2026-11-17): answers in `docs/play-production-answers.txt`
       (not in git). Google answers by email, usually within a week.
-- [ ] Main store listing, 15 languages: title, short and full description from `store/text/`,
+- [x] Main store listing, 15 languages: title, short and full description from `store/text/`,
       icon `branding/icon-1024.png` (512 px), feature graphic, phone screenshots.
 - [ ] Store settings: category Productivity, contact email, privacy policy URL.
 - [ ] Countries / regions for production.
@@ -65,15 +93,17 @@ Output `store/feature-graphic-<en|vi>.png` (Google Play, 1024x500).
 
 ## 5. App Store
 
-- [ ] Version: rename 1.0 to 1.0.0 (must equal the build's version).
-- [ ] Text in 15 languages: `gh workflow run store-text.yml -R cozy-pi/cozysafe -f write=true`.
+- [x] Version: must equal the build's version (1.0.1 for build 1180).
+- [x] Text in 15 languages: `gh workflow run store-text.yml -R cozy-pi/cozysafe -f write=true`.
       By hand: copyright, screenshots (iPhone 6.3", iPad 13").
-- [ ] App Information: category, age rating, content rights. App Privacy: Data Not Collected.
+- [x] App Information: category, age rating, content rights. App Privacy: Data Not Collected.
       Pricing: free, every country EXCEPT France (docs/export-compliance.md: the
       "no export documents" answer holds only while France is left out). Business → trader status for the EU.
-- [ ] App Review Information: contact, notes from `store/README.md`, "Sign-in required" off.
-- [ ] Build: pick the 1.0.0 build. Release: manually, so both stores can go out together.
-- [ ] Owner says go → Add for Review → Submit. Apple usually answers in 1 to 2 days.
+- [x] App Review Information: contact, notes from `store/README.md`, "Sign-in required" off.
+- [x] Build: pick the build (1180). Release: manually, so both stores can go out together.
+- [x] Owner says go → Add for Review → Submit. Apple usually answers in 1 to 2 days.
+      Add for Review is refused while China mainland is ticked without its two documents
+      (Security Assessment, AIGC declaration); ticking it again after submitting is allowed.
 
 ## 6. After both are approved
 
