@@ -84,10 +84,16 @@ jobs:
 
   ios:
     needs: profile
-    # App Store uploads require the Xcode 26 SDK.
-    runs-on: macos-26
+    # Xcode 27.1 (iOS 27.1 SDK): the App Store shows a build made with it as made for
+    # iPhone Duo (owner 2026-11-17). The `xcode-27` image is a GitHub preview.
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app
+          xcodebuild -version
+          xcodebuild -showsdks | grep -E 'iphoneos27\.1' || { echo "::error::No iOS 27.1 SDK"; exit 1; }
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           cache-targets: false

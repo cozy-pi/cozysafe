@@ -428,6 +428,13 @@ class _CentreTabs extends StatelessWidget {
   }
 }
 
+/// The vault bar's widest, on a phone whose screen is wider than a phone's (iPhone Duo's
+/// inner display); a wide window has no bar.
+const double barMaxWidth = 520;
+
+/// From this width a phone-layout screen shows five photos a row until pinched.
+const double wideishPhone = 600;
+
 /// The + in the middle of the bar: a little smaller than the bar's other buttons.
 const double centrePlusSize = 46;
 

@@ -2,7 +2,7 @@
 # The stores' screenshots, rendered from the app itself (app/test/website_shots_test.dart
 # with STORE=true), then saved without an alpha channel, which both stores refuse:
 #   tools/store-shots
-# Output: app/test/store/<iphone|ipad|play>-<screen>-<en|vi>-<light|dark>.png (not committed).
+# Output: app/test/store/<iphone|ipad|duo-outer|duo-inner|play>-<screen>-<en|vi>-<light|dark>.png (not committed).
 # Needs Flutter, ImageMagick and app/test/preview_assets/*.jpg (docs/release-public.md).
 set -euo pipefail
 cd "$(dirname "$0")/../app"
