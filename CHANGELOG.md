@@ -4,6 +4,15 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
+## Unreleased
+
+### Fixed
+- Android: "Save to a file" for the 24 words opens the system's Save dialog, so the
+  file can go into Downloads or any folder on the phone. The share sheet it used had no
+  way to save to the phone itself.
+- Android: adding photos or files no longer leaves the app waiting when the picker
+  could not open or was opened twice.
+
 ## 1.0.0 (2026-11-16)
 
 The first public version, for the App Store and Google Play. It works like 0.3.2.

@@ -56,6 +56,12 @@ class MainActivity : FlutterFragmentActivity() {
     private val screenshotSeen: Any? =
         if (Build.VERSION.SDK_INT >= 34) Activity.ScreenCaptureCallback { privacy?.invokeMethod("screenshot", null) } else null
     private var openResult: MethodChannel.Result? = null
+    // "Save to a file" for the 24 words: the system's Save dialog, so the .txt lands in a
+    // folder the person picks (Downloads, a USB drive…). Android's share sheet has no
+    // "save to this phone" (a tester asked for it, 2026-11-17).
+    private lateinit var saveDoc: ActivityResultLauncher<String>
+    private var saveResult: MethodChannel.Result? = null
+    private var saveBytes: ByteArray? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Edge to edge on every Android, as Android 15 already does for SDK 35 (Google Play's
@@ -71,6 +77,20 @@ class MainActivity : FlutterFragmentActivity() {
         // The system photo picker: no permission to read the whole library.
         pickMedia = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(100)) { deliver(it) }
         pickDocs = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { deliver(it) }
+        saveDoc = registerForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+            val r = saveResult
+            val bytes = saveBytes
+            saveResult = null
+            saveBytes = null
+            if (r == null) return@registerForActivityResult
+            if (uri == null || bytes == null) return@registerForActivityResult r.success(false)
+            try {
+                contentResolver.openOutputStream(uri, "wt")?.use { it.write(bytes) } ?: return@registerForActivityResult r.success(false)
+                r.success(true)
+            } catch (_: Throwable) {
+                r.success(false)
+            }
+        }
         qr = QrCode(this)
         openWith = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             openResult?.success(true)
@@ -104,6 +124,21 @@ class MainActivity : FlutterFragmentActivity() {
                     Runtime.getRuntime().exit(0)
                 }
                 else -> result.notImplemented()
+            }
+        }
+        MethodChannel(messenger, "cozysafe/savefile").setMethodCallHandler { call, result ->
+            if (call.method != "saveText") return@setMethodCallHandler result.notImplemented()
+            val name = call.argument<String>("name") ?: "file.txt"
+            val text = call.argument<String>("text") ?: return@setMethodCallHandler result.success(false)
+            saveResult?.success(false) // one still open is given up
+            saveResult = result
+            saveBytes = text.toByteArray(Charsets.UTF_8)
+            try {
+                saveDoc.launch(name)
+            } catch (_: Throwable) {
+                saveResult = null
+                saveBytes = null
+                result.success(false)
             }
         }
         MethodChannel(messenger, "cozysafe/open").setMethodCallHandler { call, result ->
@@ -263,15 +298,24 @@ class MainActivity : FlutterFragmentActivity() {
         }
         originals = MethodChannel(messenger, "cozysafe/originals").apply { setMethodCallHandler { call, result ->
             when (call.method) {
-                "pickMedia" -> {
+                "pickMedia", "pickFiles" -> {
+                    // Dart waits for this answer: a pick still open (a second tap) is closed
+                    // as "nothing picked", and a picker that cannot open answers the same,
+                    // instead of leaving the app waiting for good (a tester's "it freezes",
+                    // 2026-11-17).
+                    pickResult?.success(0)
                     pickResult = result
                     pickSession = call.argument<Int>("session") ?: 0
-                    pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
-                }
-                "pickFiles" -> {
-                    pickResult = result
-                    pickSession = call.argument<Int>("session") ?: 0
-                    pickDocs.launch(arrayOf("*/*"))
+                    try {
+                        if (call.method == "pickMedia") {
+                            pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                        } else {
+                            pickDocs.launch(arrayOf("*/*"))
+                        }
+                    } catch (_: Throwable) {
+                        pickResult = null
+                        result.success(0)
+                    }
                 }
                 "stopCopy" -> {
                     copyStopped = true
