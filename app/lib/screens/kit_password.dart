@@ -4,8 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../lock_resume.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
-import '../theme.dart';
-import '../widgets/bottom_bar.dart';
+import '../widgets/steps.dart' show StepMainButton, StepPage;
 import '../widgets/secret.dart';
 import 'common.dart';
 import '../widgets/readable.dart';
@@ -80,33 +79,30 @@ class _KitPasswordScreenState extends State<KitPasswordScreen> with VaultLockAwa
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final c = CsColors.of(context);
+    // The steps' frame (docs/design-language.md, Steps): Back beside the button, the field
+    // in the middle (owner 2026-11-18: "the content must be in the middle").
     return Scaffold(
-      appBar: AppBar(title: Text(l.showKit)),
-      body: PinnedAction(
-        padding: Ui.side,
+      body: StepPage(
+        title: l.showKit,
+        lead: l.kitPasswordLead,
+        onBack: () => Navigator.of(context).maybePop(),
         actions: [
-          FilledButton(
+          StepMainButton(
             key: const ValueKey('kit-password-go'),
-            onPressed: _busy || _pw.text.isEmpty ? null : _check,
-            child: BusyLabel(busy: _busy, idle: l.kitPasswordGo, working: l.checking),
+            // Short: the button has half the row (the title already says what is shown).
+            label: l.secretShow,
+            busyLabel: _busy ? l.checking : null,
+            onTap: _busy || _pw.text.isEmpty ? null : _check,
           ),
         ],
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(Ui.side, 12, Ui.side, 24),
-          children: [
-            Text(l.kitPasswordLead, style: TextStyle(color: c.muted, fontSize: CsType.callout, height: 1.4)),
-            const SizedBox(height: 18),
-            SecretField(
-              key: const ValueKey('kit-password'),
-              controller: _pw,
-              enabled: !_busy,
-              label: l.kitPasswordTitle,
-              errorText: _error,
-              onChanged: (_) => setState(() => _error = null),
-              onSubmitted: (_) => _check(),
-            ),
-          ],
+        body: SecretField(
+          key: const ValueKey('kit-password'),
+          controller: _pw,
+          enabled: !_busy,
+          label: l.kitPasswordTitle,
+          errorText: _error,
+          onChanged: (_) => setState(() => _error = null),
+          onSubmitted: (_) => _check(),
         ),
       ),
     );

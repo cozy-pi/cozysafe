@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
-import '../widgets/cs_switch.dart';
 import 'package:flutter/services.dart';
 
 import '../biometric.dart';
@@ -11,7 +10,7 @@ import '../secret_key_store.dart';
 import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
-import '../widgets/steps.dart' show StepMainButton, StepPage, StepTextButton;
+import '../widgets/steps.dart' show StepMainButton, StepPage, StepSideButton;
 import '../widgets/edge_swipe_back.dart';
 import '../widgets/password_strength.dart';
 import '../widgets/recovery_words.dart';
@@ -32,8 +31,9 @@ import 'vault_home.dart';
 /// with a copy kept in the iCloud Keychain / Google Block Store, on by default for an
 /// everyday vault → (no copy) four words typed back, which can be skipped after a warning
 /// → the vault password, which the system's password manager can suggest and keeps under
-/// the vault's code (ADR 0008); the vault is made here → Face ID → in. The icon and
-/// colour are picked at random, changed later in Settings. Nothing goes to the cloud for
+/// the vault's code (ADR 0008) → the review → Face ID → in. The icon and
+/// colour are suggested at random and chosen on the review, the last step, where a tap
+/// on any line goes back to it (owner 2026-11-18); "Create vault" makes it there. Nothing goes to the cloud for
 /// a Top secret vault, and its words are always typed back.
 class NewVaultScreen extends StatefulWidget {
   const NewVaultScreen({super.key, required this.libraryDir, required this.first, this.avoid});
@@ -57,7 +57,7 @@ class NewVaultScreen extends StatefulWidget {
   State<NewVaultScreen> createState() => _NewVaultScreenState();
 }
 
-enum _Step { mode, keys, words, check, password, biometric }
+enum _Step { mode, look, keys, words, check, password, review, biometric }
 
 class _NewVaultScreenState extends State<NewVaultScreen> {
   _Step _step = _Step.mode;
@@ -119,13 +119,17 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         // Every vault chooses Top Secret Mode or not, its own (ADR 0007, owner 2026-10-31:
         // with the differences listed, and said it can change later).
         if (!NewVaultScreen.debugSkipMode) _Step.mode,
+        // Its icon and colour (owner 2026-11-18: a step of its own, not only a line on the
+        // review), so it stands apart from the other vaults on the lock screen.
+        if (!NewVaultScreen.debugSkipMode) _Step.look,
         // Another vault on this device: its 24 words, a new set or the one the device
         // already has (owner 2026-11-01: a choice). The first vault always makes its set.
         if (!widget.first && !_forcedOwn) _Step.keys,
         if (_newWords) ...[_Step.words, if (!_cloudOn) _Step.check],
-        // Last before Face ID: the vault is made with it, under the code the password
-        // manager names it by.
         _Step.password,
+        // Everything once more, the look to choose, and "Create vault" (owner 2026-11-18:
+        // a last step that only said Next felt wrong). The vault is made here.
+        _Step.review,
         if (_bioKind != null && !_bioTaken) _Step.biometric,
       ];
 
@@ -226,9 +230,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   bool get _passwordOk => PasswordStrength.acceptable(_pw.text) && _pw.text == _pwAgain.text;
 
-  /// The vault is made with its password (decisions 2026-10-28: no PIN), last of the
-  /// questions about its keys; then Face ID. An error stays on the password, where it is
-  /// shown. The system's password manager is told the form is done: it offers to keep
+  /// The vault is made with its password (decisions 2026-10-28: no PIN), from the review;
+  /// then Face ID. An error is shown on the review. The system's password manager is told the form is done: it offers to keep
   /// the password under the vault's code (never for a Top secret vault).
   Future<void> _create(AppLocalizations l) async {
     setState(() {
@@ -270,6 +273,11 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     }
     final vault = _vault!;
     TextInput.finishAutofillContext(shouldSave: !vault.topSecret);
+    // A copy made, then the vault turned Top secret on the review: it is taken out.
+    if (_cloudKey case final key? when !_cloudOn) {
+      _cloudKey = null;
+      await KeyBackup.remove(key);
+    }
     _pw.clear();
     _pwAgain.clear();
     // The copy of the words names the vault now that it exists.
@@ -283,8 +291,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   // ---------- in ----------
 
-  /// The look was picked at random when the vault was made (it avoids the others on this
-  /// device); Settings changes it.
+  /// The look was suggested at random (it avoids the others on this device) or chosen on
+  /// the review; Settings changes it.
   Future<void> _enter() async {
     final vault = _vault!;
     if (_busy) return;
@@ -330,26 +338,32 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final progress = steps.indexOf(_step);
     final title = switch (_step) {
       _Step.mode => l.modeChooseTitle,
+      _Step.look => l.lookTitle,
       _Step.keys => l.keysTitle,
       _Step.words => l.wordsTitle,
       _Step.check => l.wordsCheckTitle,
       _Step.password => l.backupPasswordTitle,
+      _Step.review => l.reviewTitle,
       _Step.biometric => l.biometricAskTitle,
     };
     final hint = switch (_step) {
       _Step.mode => l.modeChooseLead,
+      _Step.look => l.lookLead,
       _Step.keys => l.keysLead,
       _Step.words => l.wordsLead,
       _Step.check => l.wordsCheckLead,
       _Step.password => l.passwordLead,
+      _Step.review => l.reviewLead,
       _Step.biometric => l.biometricAskBody,
     };
     final body = switch (_step) {
       _Step.mode => _modeBody(l),
+      _Step.look => VaultLookPicker(icon: _icon, color: _color, onChanged: (i, c) => setState(() { _icon = i; _color = c; })),
       _Step.keys => _keysBody(l),
       _Step.words => _wordsBody(l),
       _Step.check => _checkBody(l),
       _Step.password => _passwordBody(l),
+      _Step.review => _reviewBody(l),
       _Step.biometric => _biometricBody(l),
     };
 
@@ -370,35 +384,39 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       // progress on top, the title big on the left, the main button the page's width.
       child: Scaffold(
       backgroundColor: page,
-      body: StepPage(
+      body: _autofill(StepPage(
         key: ValueKey(_step),
         title: title,
         lead: hint,
         count: steps.length,
         at: progress,
-        onBack: _canGoBack ? _back : () => Navigator.of(context).maybePop(),
+        // Once the vault exists there is no way back (Face ID's question comes after it).
+        onBack: _vault != null || _step == _Step.biometric ? null : (_canGoBack ? _back : () => Navigator.of(context).maybePop()),
         actions: [
           ?_primaryButton(l),
           // Face ID's question: its No under Yes.
           if (_step == _Step.biometric)
-            StepTextButton(
+            StepSideButton(
               key: const ValueKey('bio-no'),
               label: l.biometricOfferNo,
               onTap: _busy ? null : () => _biometricAnswer(false),
-            )
-          else if (!_canGoBack && !widget.first && _vault == null)
-            StepTextButton(
-              key: const ValueKey('new-vault-cancel'),
-              label: l.cancel,
-              onTap: _busy ? null : () => Navigator.of(context).maybePop(),
             ),
+          // No Cancel on the first step (owner 2026-11-18): Back on top leaves.
         ],
         body: body,
-      ),
+      )),
     ),
     ),
     );
   }
+
+  /// The password manager's form spans the password and the review (the fields stay,
+  /// hidden, on the review): leaving the password step for the review must not end it,
+  /// or the password would not be offered for saving once the vault is made. Not for a
+  /// Top secret vault, and not on the other steps (the four words typed back are no login).
+  Widget _autofill(Widget page) => _topSecret != true && (_step == _Step.password || _step == _Step.review)
+      ? AutofillGroup(onDisposeAction: AutofillContextAction.cancel, child: page)
+      : page;
 
   /// Wide main button at the end of a form step.
   /// Face ID (or fingerprint): one question, its own step.
@@ -419,14 +437,16 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     final loading = widget.first && _words == null && NewVaultScreen.debugWords == null;
     return switch (_step) {
       _Step.mode => button(const ValueKey('mode-next'), l.pinNext, _topSecret == null || loading ? null : _afterMode),
+      _Step.look => button(const ValueKey('look-next'), l.pinNext, () => _next(_Step.look)),
       _Step.keys => button(const ValueKey('keys-next'), l.pinNext, () {
           _chooseKeys();
           _next(_Step.keys);
         }),
       _Step.words => button(const ValueKey('words-done'), _cloudOn ? l.pinNext : l.wordsWritten, _busy ? null : () => _wordsDone(l)),
       _Step.check => button(const ValueKey('check-done'), l.pinNext, _checkOk && !_busy ? () => _go(_Step.password) : null),
+      _Step.password => button(const ValueKey('password-next'), l.pinNext, !_passwordOk || _busy ? null : () => _go(_Step.review)),
       // The vault is made here.
-      _Step.password => button(const ValueKey('password-next'), l.pinNext, !_passwordOk || _busy ? null : () => _create(l)),
+      _Step.review => button(const ValueKey('review-create'), l.reviewCreate, !_passwordOk || _busy ? null : () => _create(l)),
       _Step.biometric => button(const ValueKey('bio-yes'), l.biometricOfferYes, _busy ? null : () => _biometricAnswer(true)),
     };
   }
@@ -637,39 +657,26 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
 
   // "I wrote them down" sits in the bottom row, always in sight: on a small Android
   // phone it was below the fold (owner 2026-10-24). So does every step's main button.
-  Widget _wordsBody(AppLocalizations l) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        RecoveryWordsPanel(words: _words ?? const []),
-        if (_cloudOffered) ...[const SizedBox(height: 14), _cloudChoice(l)],
-      ]);
+  // The cloud copy is a button beside Copy and Save to file (owner 2026-11-18: the switch
+  // under the words was below the fold, then "one row of three").
+  Widget _wordsBody(AppLocalizations l) =>
+      RecoveryWordsPanel(words: _words ?? const [], cloud: _cloudOffered ? _cloudButton(l) : null);
 
-  /// The copy in the cloud, on by default: what it does, in one line, and a switch.
-  Widget _cloudChoice(AppLocalizations l) {
-    final ink = Theme.of(context).colorScheme.onSurface;
+  /// The copy in the cloud, on by default: a button that is filled while on. What it does
+  /// is said once it is turned on (the line that said it under a switch is gone).
+  Widget _cloudButton(AppLocalizations l) {
     final google = KeyBackup.google;
-    return Material(
-      color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(Ui.groupRadius),
-      child: InkWell(
-        key: const ValueKey('words-cloud'),
-        borderRadius: BorderRadius.circular(Ui.groupRadius),
-        onTap: () => _cloudSwitch(!_cloud),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-          child: Row(children: [
-            Icon(Icons.cloud_rounded, size: 28, color: ink),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(google ? l.wordsCloudGoogle : l.wordsCloud,
-                    style: TextStyle(color: ink, fontSize: CsType.callout, fontWeight: FontWeight.w700)),
-                Text(google ? l.wordsCloudNoteGoogle : l.wordsCloudNote,
-                    style: TextStyle(color: ink.withValues(alpha: .65), fontSize: CsType.footnote, height: 1.3)),
-              ]),
-            ),
-            CsSwitch(key: const ValueKey('words-cloud-switch'), value: _cloud, onChanged: _cloudSwitch),
-          ]),
-        ),
-      ),
+    return WordsAction(
+      key: const ValueKey('words-cloud'),
+      icon: _cloud ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+      label: google ? 'Google' : 'iCloud',
+      on: _cloud,
+      onTap: () async {
+        await _cloudSwitch(!_cloud);
+        if (!mounted) return;
+        showToast(context, _cloud ? (google ? l.wordsCloudNoteGoogle : l.wordsCloudNote) : l.wordsCloudOff,
+            icon: _cloud ? Icons.cloud_done_rounded : Icons.cloud_off_rounded);
+      },
     );
   }
 
@@ -702,17 +709,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       children: [
         // The account the password is kept under, never shown: a password manager needs
         // one beside the password. Fixed before the vault exists (its draft's code).
-        if (hints != null)
-          Offstage(
-            child: ExcludeSemantics(
-              child: TextField(
-                key: const ValueKey('new-password-account'),
-                controller: _account,
-                autofillHints: const [AutofillHints.username],
-                enableInteractiveSelection: false,
-              ),
-            ),
-          ),
+        if (hints != null) _accountField(),
         SecretField(
           key: const ValueKey('new-password'),
           controller: _pw,
@@ -737,7 +734,94 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         ],
       ],
     );
-    return hints == null ? form : AutofillGroup(onDisposeAction: AutofillContextAction.cancel, child: form);
+    // The form is the one [_autofill] puts around this step and the review.
+    return form;
+  }
+
+  Widget _accountField() => Offstage(
+        child: ExcludeSemantics(
+          child: TextField(
+            key: const ValueKey('new-password-account'),
+            controller: _account,
+            autofillHints: const [AutofillHints.username],
+            enableInteractiveSelection: false,
+          ),
+        ),
+      );
+
+  /// The last step: what was chosen, a line each, and a tap on a line goes back to choose
+  /// it again (owner 2026-11-18); the look is chosen right here. "Create vault" makes it.
+  Widget _reviewBody(AppLocalizations l) {
+    final c = CsColors.of(context);
+    final ink = Theme.of(context).colorScheme.onSurface;
+    final steps = _steps;
+    // Where a line goes: the first of these steps the flow has.
+    _Step? goTo(List<_Step> any) => any.where(steps.contains).firstOrNull;
+    final where = KeyBackup.google ? 'Google' : 'iCloud Keychain';
+    final words = !_newWords
+        ? l.keysDevice
+        : _cloudOn
+            ? l.reviewWordsCloud(where)
+            : _checkSkipped
+                ? l.reviewWordsSkipped
+                : l.reviewWordsChecked;
+    Widget line(String key, Widget lead, String label, String? value, VoidCallback? onTap) => Material(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(Ui.groupRadius),
+          child: InkWell(
+            key: ValueKey(key),
+            borderRadius: BorderRadius.circular(Ui.groupRadius),
+            onTap: _busy ? null : onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+              child: Row(children: [
+                SizedBox(width: 44, child: Center(child: lead)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(label, style: TextStyle(color: ink, fontSize: CsType.callout, fontWeight: FontWeight.w700)),
+                    if (value != null)
+                      Text(value, style: TextStyle(color: c.muted, fontSize: CsType.footnote, height: 1.3)),
+                  ]),
+                ),
+                if (onTap != null) Icon(Icons.chevron_right_rounded, color: ink.withValues(alpha: .45)),
+              ]),
+            ),
+          ),
+        );
+    final mode = goTo([_Step.mode]);
+    final keys = goTo([_Step.keys, _Step.words]);
+    final top = _topSecret == true;
+    final hidden = _topSecret != true;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      line('review-look', VaultBadge(icon: vaultIcons[_icon].id, color: vaultColors[_color].id, size: 44), l.reviewLook, null,
+          () => _go(_Step.look)),
+      const SizedBox(height: 10),
+      line('review-mode', Icon(top ? Icons.lock_rounded : Icons.photo_library_rounded, size: 28, color: top ? topSecretRed : privateGreen),
+          l.reviewMode, top ? l.topSecretShort : l.modeEveryday, mode == null ? null : () => _go(mode)),
+      const SizedBox(height: 10),
+      line('review-words', Icon(_cloudOn ? Icons.cloud_done_rounded : Icons.key_rounded, size: 28, color: ink), l.reviewWords, words,
+          keys == null ? null : () => _go(keys)),
+      const SizedBox(height: 10),
+      line('review-password', Icon(Icons.password_rounded, size: 28, color: ink), l.password, l.reviewPasswordSet,
+          () => _go(_Step.password)),
+      // The password fields stay in the password manager's form, hidden, so that it is
+      // offered for saving once the vault is made.
+      if (hidden)
+        Offstage(
+          child: ExcludeSemantics(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _accountField(),
+              TextField(controller: _pw, obscureText: true, autofillHints: const [AutofillHints.newPassword]),
+              TextField(controller: _pwAgain, obscureText: true, autofillHints: const [AutofillHints.newPassword]),
+            ]),
+          ),
+        ),
+      if (_error != null) ...[
+        const SizedBox(height: 12),
+        Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600)),
+      ],
+    ]);
   }
 }
 

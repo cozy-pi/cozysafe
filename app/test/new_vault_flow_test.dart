@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:cozysafe/widgets/recovery_words.dart' show WordsAction;
 import 'package:cozysafe/biometric.dart';
 import 'package:cozysafe/key_backup.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
@@ -92,6 +93,8 @@ Future<void> _start(WidgetTester t, {required bool topSecret}) async {
   await t.tap(find.byKey(ValueKey(topSecret ? 'mode-top-secret' : 'mode-everyday')));
   await t.pump();
   await t.tap(find.byKey(const ValueKey('mode-next')));
+  await t.pumpAndSettle();
+  await t.tap(find.byKey(const ValueKey('look-next')));
   await _settle(t);
 }
 
@@ -102,6 +105,9 @@ Future<void> _password(WidgetTester t) async {
   }
   await t.pump();
   await t.tap(find.byKey(const ValueKey('password-next')));
+  await _settle(t);
+  // The review: "Create vault" makes it.
+  await t.tap(find.byKey(const ValueKey('review-create')));
   await _settle(t);
 }
 
@@ -137,7 +143,7 @@ void main() {
   testWidgets('with the cloud copy (on by default) the words are not asked back, and the copy names the vault', (t) async {
     await _start(t, topSecret: false);
     expect(find.byKey(const ValueKey('words-cloud')), findsOneWidget);
-    expect(t.widget<Switch>(find.descendant(of: find.byKey(const ValueKey('words-cloud-switch')), matching: find.byType(Switch))).value, isTrue);
+    expect(t.widget<WordsAction>(find.byKey(const ValueKey('words-cloud'))).on, isTrue);
     await t.tap(find.byKey(const ValueKey('words-done')));
     await _settle(t);
     // Straight to the password: no check.
@@ -157,10 +163,11 @@ void main() {
 
   testWidgets('without the copy the words are asked back; skipping warns first and leaves a reminder', (t) async {
     await _start(t, topSecret: false);
-    await t.ensureVisible(find.byKey(const ValueKey('words-cloud-switch')));
+    await t.ensureVisible(find.byKey(const ValueKey('words-cloud')));
     await t.pumpAndSettle();
-    await t.tap(find.byKey(const ValueKey('words-cloud-switch')));
+    await t.tap(find.byKey(const ValueKey('words-cloud')));
     await t.pump();
+    expect(t.widget<WordsAction>(find.byKey(const ValueKey('words-cloud'))).on, isFalse);
     await t.tap(find.byKey(const ValueKey('words-done')));
     await _settle(t);
     expect(_cloud, isEmpty);

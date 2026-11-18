@@ -1,5 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
+
+import '../l10n/app_localizations.dart';
 import '../theme.dart';
 import 'bottom_bar.dart' show PinnedAction;
 import 'vault_bar.dart' show RoundBack;
@@ -98,9 +102,12 @@ class ChoiceCard extends StatelessWidget {
   }
 }
 
-/// A step of a flow, one question per screen (docs/design-language.md, Steps): Back and
-/// the progress on top, the title big on the left, the main button at the bottom the
-/// width of the page, a second choice as plain text under it.
+/// A step of a flow, one question per screen (docs/design-language.md, Steps): the
+/// progress on top, the title big on the left, and at the bottom one row that never moves
+/// between steps: Back and the main button, half the width each (owner 2026-11-18: Back
+/// on top and a Cancel that came and went made the buttons jump; then "split in two, as
+/// Face ID's"). A second choice, as plain text, and [pinned] sit above that row; with no
+/// Back, a two-way question's answers take the two halves.
 class StepPage extends StatelessWidget {
   const StepPage({
     super.key,
@@ -111,6 +118,7 @@ class StepPage extends StatelessWidget {
     this.at = 0,
     this.onBack,
     this.actions = const [],
+    this.pinned,
     this.scroll = true,
   });
   final String title;
@@ -119,10 +127,13 @@ class StepPage extends StatelessWidget {
   /// Steps in the flow (none: no progress shown) and the one on screen.
   final int count;
   final int at;
-  /// Null: no Back on top (a page with nothing under it, or one that must be finished).
+  /// Null: no Back (a page with nothing under it, or one that must be finished).
   final VoidCallback? onBack;
-  /// The main button, then a quieter one ([StepTextButton]).
+  /// The main button, then a quieter one ([StepTextButton], or [StepSideButton]).
   final List<Widget> actions;
+  /// Kept in sight above the buttons, out of the scrolling body (a switch the step's
+  /// button depends on).
+  final Widget? pinned;
   /// The body scrolls with the title; false where it holds its own list.
   final bool scroll;
 
@@ -139,10 +150,27 @@ class StepPage extends StatelessWidget {
       ],
       const SizedBox(height: 18),
     ];
+    // The body in the middle of the room under the title (owner 2026-11-18: "the content
+    // must be in the middle", on every page): the column is at least the room's height
+    // and shares what is left above and under the body; a long body simply scrolls.
     final content = scroll
-        ? SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(Ui.side, 8, Ui.side, 16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [...head, body]),
+        ? LayoutBuilder(
+            builder: (context, box) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(Ui.side, 8, Ui.side, 16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: math.max(0, box.maxHeight - 24)),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: head),
+                    body,
+                    // The third child, so the space is shared above and under the body.
+                    const SizedBox(height: 0),
+                  ],
+                ),
+              ),
+            ),
           )
         : Padding(
             padding: const EdgeInsets.fromLTRB(Ui.side, 8, Ui.side, 0),
@@ -152,13 +180,13 @@ class StepPage extends StatelessWidget {
       bottom: false,
       child: Column(
         children: [
-          // Neither Back nor progress: no empty band over the title.
-          if (onBack != null || count > 1)
+          // Back sits with the main button; on top only when the page has no button.
+          if ((onBack != null && actions.isEmpty) || count > 1)
             Padding(
               padding: const EdgeInsets.fromLTRB(Ui.groupSide, 8, Ui.side, 4),
               child: Row(
                 children: [
-                  if (onBack != null)
+                  if (onBack != null && actions.isEmpty)
                     RoundBack(key: const ValueKey('step-back'), onTap: onBack)
                   else
                     const SizedBox(height: Ui.circle),
@@ -177,7 +205,7 @@ class StepPage extends StatelessWidget {
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: actions.isEmpty
                     ? SafeArea(top: false, child: SizedBox.expand(child: content))
-                    : PinnedAction(padding: Ui.side, actions: actions, child: content),
+                    : PinnedAction(padding: Ui.side, actions: _bottom(context), child: content),
               ),
             ),
           ),
@@ -185,6 +213,57 @@ class StepPage extends StatelessWidget {
       ),
     );
   }
+
+  /// Above, what is pinned and the quieter choices; last, one row in the same place on
+  /// every step: Back (or a two-way question's other answer) and the main button, half
+  /// the width each.
+  List<Widget> _bottom(BuildContext context) {
+    final side = onBack == null && actions.length == 2 && actions[1] is StepSideButton;
+    final left = onBack != null
+        ? StepSideButton(
+            key: const ValueKey('step-back'),
+            label: AppLocalizations.of(context).back,
+            icon: Icons.arrow_back_ios_new_rounded,
+            onTap: onBack,
+          )
+        : side
+            ? actions[1]
+            : null;
+    return [
+      if (pinned != null) ...[pinned!, const SizedBox(height: 10)],
+      if (!side && actions.length > 1) ...[...actions.skip(1), const SizedBox(height: 6)],
+      Row(children: [
+        if (left != null) ...[Expanded(child: left), const SizedBox(width: 12)],
+        // Only a quiet way on (Skip): it takes the half as an outlined button, so the row
+        // stays balanced.
+        Expanded(
+          child: switch (actions.first) {
+            final StepTextButton t => StepSideButton(key: t.key, label: t.label, onTap: t.onTap),
+            final first => first,
+          },
+        ),
+      ]),
+    ];
+  }
+}
+
+/// The left half of a step's bottom row, outlined: Back, or the other answer of a
+/// two-way question on a step with no Back.
+class StepSideButton extends StatelessWidget {
+  const StepSideButton({super.key, required this.label, required this.onTap, this.icon});
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton(
+        onPressed: _tapped(onTap),
+        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 54), shape: const StadiumBorder()),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (icon != null) ...[Icon(icon, size: 16), const SizedBox(width: 6)],
+          Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
+        ]),
+      );
 }
 
 /// The second choice under a step's main button: plain text, thumb height.
@@ -197,7 +276,7 @@ class StepTextButton extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(top: 4),
         child: TextButton(
-          onPressed: onTap,
+          onPressed: _tapped(onTap),
           style: TextButton.styleFrom(
             minimumSize: const Size(0, Ui.tap),
             foregroundColor: Theme.of(context).colorScheme.onSurface,
@@ -221,7 +300,7 @@ class StepMainButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => FilledButton(
-        onPressed: onTap,
+        onPressed: _tapped(onTap),
         style: FilledButton.styleFrom(minimumSize: const Size(0, 54), shape: const StadiumBorder()),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -250,3 +329,11 @@ class StepError extends StatelessWidget {
         child: Text(text, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: CsType.subhead, fontWeight: FontWeight.w600, height: 1.35)),
       );
 }
+
+/// A step's buttons (Back, Next, Later…) tap the hand lightly (owner 2026-11-18).
+VoidCallback? _tapped(VoidCallback? onTap) => onTap == null
+    ? null
+    : () {
+        HapticFeedback.lightImpact();
+        onTap();
+      };

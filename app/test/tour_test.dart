@@ -127,6 +127,8 @@ void main() {
     await t.tap(find.byKey(const ValueKey('mode-everyday')));
     await t.pump();
     await t.tap(find.byKey(const ValueKey('mode-next')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('look-next')));
     await _settle(t);
     // Another vault on this device: its 24 words (the device's set, as chosen).
     await t.tap(find.byKey(const ValueKey('keys-next')));
@@ -137,6 +139,9 @@ void main() {
         find.descendant(of: find.byKey(const ValueKey('new-password-again')), matching: find.byType(TextField)), password);
     await t.pump();
     await t.tap(find.byKey(const ValueKey('password-next')));
+    await _settle(t);
+    // The review: "Create vault" makes it.
+    await t.tap(find.byKey(const ValueKey('review-create')));
     await _settle(t);
     expect(_fake.created, 1);
     expect(find.byKey(const ValueKey('bio-yes')), findsOneWidget);
@@ -155,6 +160,8 @@ void main() {
     await t.tap(find.byKey(const ValueKey('mode-everyday')));
     await t.pump();
     await t.tap(find.byKey(const ValueKey('mode-next')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('look-next')));
     await _settle(t);
     // Another vault on this device: its 24 words (the device's set, as chosen).
     await t.tap(find.byKey(const ValueKey('keys-next')));
@@ -165,6 +172,9 @@ void main() {
         find.descendant(of: find.byKey(const ValueKey('new-password-again')), matching: find.byType(TextField)), password);
     await t.pump();
     await t.tap(find.byKey(const ValueKey('password-next')));
+    await _settle(t);
+    // The review: "Create vault" makes it.
+    await t.tap(find.byKey(const ValueKey('review-create')));
     await _settle(t);
     expect(_fake.created, 1);
     expect(find.byKey(const ValueKey('bio-yes')), findsNothing);

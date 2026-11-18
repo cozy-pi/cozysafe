@@ -253,7 +253,8 @@ By case:
   Google Block Store (`BlockStore.kt`, one entry per set) with cloud backup, and only
   when Google says it is end-to-end encrypted (the phone has a screen lock); otherwise
   nothing is kept, and the new vault screen asks for the four words instead. Same trade
-  with the Google account; a phone restored from that account fills in the words.
+  with the Google account; on a phone signed in to that account, restoring offers the
+  words behind a button (never filled in unasked; with several sets, the person picks).
 - **The vault password in the system's password manager** (2026-11-05, ADR 0008): the
   new vault and change password screens mark their fields for AutoFill, so iOS
   (Passwords, through `webcredentials:cozypi.com`) and Android (Google Password Manager)

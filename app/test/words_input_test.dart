@@ -56,6 +56,14 @@ void main() {
     expect(find.byKey(const ValueKey('words-no-key')), findsNothing);
   });
 
+  testWidgets('words set on the controller after the page is up fill the cells (the iCloud copy)', (t) async {
+    await t.pumpWidget(_app(WordsInput(controller: c)));
+    c.text = _words; // found in the cloud a moment later
+    await t.pump();
+    expect(find.text('•••••'), findsNWidgets(24)); // every cell filled, hidden
+    expect(c.text, _words);
+  });
+
   testWidgets('four letters complete the word and move on; a cell left turns to dots', (t) async {
     await t.pumpWidget(_app(WordsInput(controller: c)));
     await t.enterText(_field(0), 'boun');
