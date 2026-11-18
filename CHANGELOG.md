@@ -4,14 +4,6 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
-## 1.0.7 (2026-11-18)
-
-### Changed
-- Making a vault with the iCloud (or Google) copy of the 24 words on: the step to type
-  four of them back is there too, with Skip going straight on, since the words are kept
-  in your account as well.
-- Deleting a vault follows the app's light or dark look, like every other page.
-
 ## 1.0.6 (2026-11-18)
 
 ### Added
@@ -22,6 +14,10 @@ Versions before 1.0.0 were preview builds.
   words kept in your account. With more than one set kept there, you pick which one.
 
 ### Changed
+- Making a vault with the iCloud (or Google) copy of the 24 words on: the step to type
+  four of them back is there too, with Skip going straight on, since the words are kept
+  in your account as well.
+- Deleting a vault follows the app's light or dark look, like every other page.
 - Every step page has Back and the main button side by side at the bottom, half the
   width each, in the same place on every step; the Cancel button is gone (Back on the
   first step leaves). The content sits in the middle of the screen, and step buttons
