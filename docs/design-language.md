@@ -174,10 +174,24 @@ removed). The strength line under it says how to make a better one.
 **Selection marks**: round everywhere (the theme's `checkboxTheme`), as on a photo.
 
 **Steps** (create a vault, restore, add a password), all in one frame, `StepPage`
-(creating a vault moved onto it 2026-11-07; Back is ‹ as everywhere): create is Password → 24 words →
-four typed back → Face ID → look; the intro lists them in that order. Progress on top with Back, the title big on the
-left, one main button the width of the page at the bottom (`PinnedAction`), a second
-choice as plain text under it (`StepPage`). Adding a password (owner 2026-11-07): the
+(creating a vault moved onto it 2026-11-07): create is Mode → Icon and colour → (24 words:
+the device's set or a new one) → 24 words → four typed back (skipped while the cloud copy
+is on) → Password → Review → Face ID. Progress on top, the title big on the left, the
+content centred in the space left (owner 2026-11-18, every step page; long content
+scrolls), and at the bottom one row that stays put on every step: Back (outlined,
+`StepSideButton`) and the main button, half the width each (`PinnedAction`; owner
+2026-11-18: Back on top and a Cancel that came and went made the buttons jump, so there is
+no Cancel: Back on the first step leaves). Every step button gives a light haptic tick.
+With no Back (Face ID's question, after the vault is made) the two answers take the
+halves, Later outlined, Turn on filled. A second choice as plain text, and anything
+`pinned`, sit above that row, never below the fold (`StepPage`). Under the 24 words, one
+row of three buttons, the icon over a short word (`WordsAction`): Copy, Save to file and
+the cloud copy (iCloud / Google), its icon and ring green while on (not filled: it
+outshone the main button); a tap says what turning it on or off means. Typing the words
+back mirrors it in the same places: Paste, Open file and the cloud, the cloud never filled
+in on its own, and with several sets kept there the person picks one (owner 2026-11-18).
+The last step is a Review: one line each for look, mode, words and password, a tap goes
+back to that step, and the main button says Create vault. Adding a password (owner 2026-11-07): the
 kind is picked in the add card, then one question per screen from that kind's first,
 answered with taps where possible: what the vault already holds first, then common
 choices, typing last. Back from the first step leaves. A login's password step opens on

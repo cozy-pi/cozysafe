@@ -162,6 +162,25 @@ Future<(int, int)?> showIdentityCard(BuildContext context, {required int icon, r
       builder: (context) => _IdentityPicker(icon: icon, color: color),
     );
 
+/// The badge on top, every icon, every colour: in the card above and as a step of its
+/// own when a vault is made (owner 2026-11-18: chosen in plain sight, not only from a
+/// line on the last page).
+class VaultLookPicker extends StatelessWidget {
+  const VaultLookPicker({super.key, required this.icon, required this.color, required this.onChanged});
+  final int icon;
+  final int color;
+  final void Function(int icon, int color) onChanged;
+
+  @override
+  Widget build(BuildContext context) => Column(mainAxisSize: MainAxisSize.min, children: [
+        VaultBadge(key: const ValueKey('look-badge'), icon: vaultIcons[icon].id, color: vaultColors[color].id, size: 72),
+        const SizedBox(height: 18),
+        _IconGrid(selected: icon, onPick: (i) => onChanged(i, color)),
+        const SizedBox(height: 16),
+        _ColorRow(selected: color, onPick: (c) => onChanged(icon, c)),
+      ]);
+}
+
 class _IdentityPicker extends StatefulWidget {
   const _IdentityPicker({required this.icon, required this.color});
   final int icon;
@@ -182,18 +201,10 @@ class _IdentityPickerState extends State<_IdentityPicker> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Center(child: VaultBadge(icon: vaultIcons[_icon].id, color: vaultColors[_color].id, size: 72)),
-        const SizedBox(height: 14),
         Flexible(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              children: [
-                _IconGrid(selected: _icon, onPick: (i) => setState(() => _icon = i)),
-                const SizedBox(height: 16),
-                _ColorRow(selected: _color, onPick: (i) => setState(() => _color = i)),
-              ],
-            ),
+            child: VaultLookPicker(icon: _icon, color: _color, onChanged: (i, c) => setState(() { _icon = i; _color = c; })),
           ),
         ),
         Padding(

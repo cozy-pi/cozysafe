@@ -14,6 +14,7 @@ import '../lock_guard.dart';
 import '../platform.dart';
 import '../temp_files.dart';
 import '../screens/emergency_kit.dart' show WordGrid;
+import '../screens/top_secret_page.dart' show privateGreen;
 import '../theme.dart';
 import '../words_export.dart';
 import 'secret.dart';
@@ -47,8 +48,11 @@ List<int> pickFourWords({bool fixed = false, List<int>? not}) {
 const wordsClipboardSeconds = 60;
 
 class RecoveryWordsPanel extends StatelessWidget {
-  const RecoveryWordsPanel({super.key, required this.words});
+  const RecoveryWordsPanel({super.key, required this.words, this.cloud});
   final List<String> words;
+  /// A third button beside Copy and Save to file: the copy in the iCloud Keychain /
+  /// Google, on or off (making a vault; owner 2026-11-18: "one row of three").
+  final Widget? cloud;
 
   Future<void> _copy(BuildContext context) async {
     if (!wordsExport) return;
@@ -82,27 +86,32 @@ class RecoveryWordsPanel extends StatelessWidget {
             style: const TextStyle(fontSize: CsType.subhead),
           ),
         ),
-        if (wordsExport) ...[
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                  onPressed: () => _copy(context), icon: const Icon(Icons.copy_rounded, size: 18), label: Text(l.kitCopy)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Builder(
-                builder: (b) => OutlinedButton.icon(
-                  key: const ValueKey('words-save'),
-                  onPressed: () => _save(b),
-                  icon: const Icon(Icons.ios_share, size: 18),
-                  label: Text(l.wordsSave),
+        if (wordsExport || cloud != null) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (wordsExport) ...[
+                Expanded(
+                  child: WordsAction(icon: Icons.copy_rounded, label: l.kitCopy, onTap: () => _copy(context)),
                 ),
-              ),
-            ),
-          ],
-        ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Builder(
+                    builder: (b) => WordsAction(
+                      key: const ValueKey('words-save'),
+                      icon: Icons.ios_share,
+                      label: l.wordsSave,
+                      onTap: () => _save(b),
+                    ),
+                  ),
+                ),
+              ],
+              if (cloud != null) ...[
+                if (wordsExport) const SizedBox(width: 8),
+                Expanded(child: cloud!),
+              ],
+            ],
+          ),
         ],
         const SizedBox(height: 12),
         Material(
@@ -232,4 +241,37 @@ Future<bool?> _askBeforeSaving(BuildContext context) {
       AskAction.quiet(l.cancel, false),
     ],
   );
+}
+
+/// One of the buttons under the 24 words: the icon over a short word, so three fit in a
+/// row. [on]: a switch that is on (the cloud copy), filled.
+class WordsAction extends StatelessWidget {
+  const WordsAction({super.key, required this.icon, required this.label, required this.onTap, this.on});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool? on;
+
+  @override
+  Widget build(BuildContext context) {
+    // On: the same outlined button, its icon and ring in the private green, a check on
+    // the icon. A filled green slab outshone the main button (owner 2026-11-18).
+    final lit = on == true;
+    final child = Column(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 22, color: lit ? privateGreen : null),
+      const SizedBox(height: 4),
+      Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: CsType.footnote, fontWeight: FontWeight.w600)),
+    ]);
+    final button = OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ui.groupRadius)),
+        minimumSize: const Size(0, 64),
+        side: lit ? const BorderSide(color: privateGreen, width: 1.6) : null,
+      ),
+      child: child,
+    );
+    return on == null ? button : Semantics(toggled: on, child: button);
+  }
 }

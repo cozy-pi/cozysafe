@@ -8,7 +8,6 @@ import '../widgets/ask.dart';
 import '../biometric.dart';
 import '../debug_log.dart';
 import '../l10n/app_localizations.dart';
-import '../key_backup.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
@@ -180,20 +179,15 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
   bool _busy = false;
   /// The words came from the iCloud Keychain or Block Store (the old phone kept them).
   bool _found = false;
-  /// Every set kept there (ADR 0008: one per set); the first fills the field, the others
-  /// are tried when it does not open the file.
-  List<KeyCopy> _copies = const [];
 
-  @override
-  void initState() {
-    super.initState();
-    KeyBackup.findAll().then((all) {
-      if (all.isEmpty || !mounted || _words.text.isNotEmpty) return;
-      setState(() {
-        _copies = all;
-        _words.text = rust.secretKeyText(key: all.first.key);
-        _found = true;
-      });
+  /// The person asks for the set kept in the cloud, and picks it when there are several.
+  Future<void> _fromCloud() async {
+    final picked = await pickCloudWords(context);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _words.text = rust.secretKeyText(key: picked.key);
+      _found = true;
+      _error = null;
     });
   }
 
@@ -227,16 +221,7 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
       }
       final target = restoreTarget(widget.libraryDir);
       await rust.importBackup(path: widget.filePath, dir: target);
-      var key = Uint8List.fromList(rust.parseSecretKey(text: _words.text)!);
-      // The filled-in set is another vault's: one of the other sets kept may be this one's.
-      if (_found && !rust.secretKeyFits(dir: target, key: key)) {
-        for (final c in _copies) {
-          if (rust.secretKeyFits(dir: target, key: c.key)) {
-            key = c.key;
-            break;
-          }
-        }
-      }
+      final key = Uint8List.fromList(rust.parseSecretKey(text: _words.text)!);
       if (!mounted) return;
       if (!rust.secretKeyFits(dir: target, key: key)) {
         // The file is in; these words are not its own. Ask for them again.
@@ -300,13 +285,10 @@ class _RestoreKeysScreenState extends State<RestoreKeysScreen> {
           RecoveryKeyInput(
             key: const ValueKey('restore-words'),
             controller: _words,
+            cloud: cloudWordsAction(found: _found, onTap: _busy ? null : _fromCloud),
             onChanged: () => setState(() => _error = null),
           ),
-          if (_found)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(KeyBackup.google ? l.keyBackupFoundGoogle : l.keyBackupFound, key: const ValueKey('restore-words-found'), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
-            ),
+          if (_found) const CloudWordsFound(),
           const SizedBox(height: 12),
           SecretField(
             key: const ValueKey('restore-password'),

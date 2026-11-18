@@ -161,7 +161,10 @@ class WordGrid extends StatelessWidget {
       crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 2.9,
+      // Without it the grid adds the screen's bottom inset (the home bar) under the
+      // words: a wide gap above Show (owner 2026-11-18).
+      padding: EdgeInsets.zero,
+      childAspectRatio: 3.4,
       mainAxisSpacing: 6,
       crossAxisSpacing: 6,
       children: [

@@ -4,6 +4,28 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
+## 1.0.6 (2026-11-18)
+
+### Added
+- Making a vault: a step to pick its icon and colour, right after choosing the mode.
+- Making a vault: a last Review step lists the icon and colour, the mode, the 24 words
+  and the password; tap any line to change it, then Create vault.
+- Restoring: an iCloud (Android: Google) button beside Paste and Open file takes the 24
+  words kept in your account. With more than one set kept there, you pick which one.
+
+### Changed
+- Every step page has Back and the main button side by side at the bottom, half the
+  width each, in the same place on every step; the Cancel button is gone (Back on the
+  first step leaves). The content sits in the middle of the screen, and step buttons
+  give a light tap you can feel.
+- The iCloud copy of the 24 words is a button beside Copy and Save to file, always in
+  sight without scrolling.
+- The 24-word grid takes less room.
+
+### Fixed
+- Restoring: 24 words taken from iCloud Keychain or your Google account now show up in
+  the 24 boxes. Before, the page said they were filled in while the boxes stayed empty.
+
 ## 1.0.4 (2026-11-17)
 
 ### Added

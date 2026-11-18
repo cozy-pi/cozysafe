@@ -7,7 +7,11 @@ import '../l10n/app_localizations.dart';
 import '../secret_key_store.dart';
 import '../src/rust/api/run.dart' as run_api;
 import '../src/rust/api/vault.dart' as rust;
+import '../theme.dart';
 import '../widgets/steps.dart';
+import '../widgets/recovery_words.dart' show WordsAction;
+import '../widgets/toast.dart';
+import '../widgets/vault_bar.dart' show showCard;
 import '../widgets/words_input.dart';
 import 'common.dart';
 import 'unlock.dart';
@@ -31,17 +35,18 @@ class _RestoreScreenState extends State<RestoreScreen> {
   final _key = TextEditingController();
   bool _busy = false;
   String? _error;
+  /// The words came from the iCloud Keychain or Block Store.
+  bool _found = false;
 
-  @override
-  void initState() {
-    super.initState();
-    // The vaults are here without their words: a set kept in the iCloud Keychain / Google
-    // Block Store that fits one of the libraries fills the field (ADR 0008).
-    KeyBackup.findAll().then((all) {
-      final dirs = run_api.libraryDirs();
-      final fits = all.where((c) => dirs.any((d) => rust.secretKeyFits(dir: d, key: c.key))).firstOrNull;
-      if (fits == null || !mounted || _key.text.isNotEmpty) return;
-      setState(() => _key.text = rust.secretKeyText(key: fits.key));
+  /// The person asks for the set kept in the cloud: only one that fits a vault here.
+  Future<void> _fromCloud() async {
+    final dirs = run_api.libraryDirs();
+    final picked = await pickCloudWords(context, fits: (c) => dirs.any((d) => rust.secretKeyFits(dir: d, key: c.key)));
+    if (picked == null || !mounted) return;
+    setState(() {
+      _key.text = rust.secretKeyText(key: picked.key);
+      _found = true;
+      _error = null;
     });
   }
 
@@ -103,11 +108,78 @@ class _RestoreScreenState extends State<RestoreScreen> {
             key: const ValueKey('restore-key'),
             controller: _key,
             enabled: !_busy,
+            cloud: cloudWordsAction(found: _found, onTap: _busy ? null : _fromCloud),
             onChanged: () => setState(() => _error = null),
           ),
+          if (_found) const CloudWordsFound(),
           if (_error != null) StepError(_error!),
         ]),
       ),
     );
   }
+}
+
+/// The third button under the 24 words when restoring, where the cloud button is when
+/// they are saved: the set kept in the iCloud Keychain / Google Block Store, asked for in
+/// plain sight (owner 2026-11-18: kept there but not visibly taken back reads as no
+/// restore at all). Lit once a set was taken from there. Null off phones.
+Widget? cloudWordsAction({required bool found, required VoidCallback? onTap}) => !KeyBackup.supported
+    ? null
+    : WordsAction(
+        key: const ValueKey('restore-cloud'),
+        icon: found ? Icons.cloud_done_rounded : Icons.cloud_download_rounded,
+        label: KeyBackup.google ? 'Google' : 'iCloud',
+        on: found,
+        onTap: onTap,
+      );
+
+/// Under the words once a set came from the cloud: where from.
+class CloudWordsFound extends StatelessWidget {
+  const CloudWordsFound({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final c = CsColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(KeyBackup.google ? l.keyBackupFoundGoogle : l.keyBackupFound,
+          key: const ValueKey('restore-words-found'), style: TextStyle(color: c.muted, fontSize: CsType.footnote)),
+    );
+  }
+}
+
+/// The sets of 24 words kept in the iCloud Keychain / Google Block Store (ADR 0008: one
+/// per set), asked for by the person, never filled in on their own (owner 2026-11-18:
+/// there can be several, the person picks). One: that one. Several: a card lists each
+/// with the vaults it opens. None: said, and the words are typed. [fits] keeps only the
+/// sets that open something here.
+Future<KeyCopy?> pickCloudWords(BuildContext context, {bool Function(KeyCopy)? fits}) async {
+  final l = AppLocalizations.of(context);
+  var all = await KeyBackup.findAll();
+  if (fits != null) all = all.where(fits).toList();
+  if (!context.mounted) return null;
+  if (all.isEmpty) {
+    showToast(context, KeyBackup.google ? l.keyBackupNoneGoogle : l.keyBackupNone, icon: Icons.cloud_off_rounded);
+    return null;
+  }
+  if (all.length == 1) return all.single;
+  return showCard<KeyCopy>(
+    context,
+    title: l.keyBackupPickTitle,
+    closeButton: true,
+    builder: (context) => SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        for (final (i, copy) in all.indexed)
+          ListTile(
+            key: ValueKey('cloud-set-$i'),
+            leading: const Icon(Icons.key_rounded),
+            title: Text(l.keyBackupSet(rust.secretKeyFingerprint(key: copy.key).toUpperCase())),
+            subtitle: Text(copy.vaults.isEmpty ? l.keyBackupSetNoVault : l.keyBackupSetVaults(copy.vaults.join(', '))),
+            onTap: () => Navigator.pop(context, copy),
+          ),
+      ]),
+    ),
+  );
 }

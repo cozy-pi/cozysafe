@@ -8,6 +8,7 @@ import '../lock_resume.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../words_export.dart';
+import 'recovery_words.dart' show WordsAction;
 import 'secret.dart';
 
 /// The Recovery Key's word list (BIP39 English, from the core), for checking each word
@@ -69,6 +70,7 @@ class WordsInput extends StatefulWidget {
     this.onCells,
     this.enabled = true,
     this.paste = true,
+    this.cloud,
   });
 
   final TextEditingController? controller;
@@ -77,6 +79,9 @@ class WordsInput extends StatefulWidget {
   final ValueChanged<List<String>>? onCells;
   final bool enabled;
   final bool paste;
+
+  /// A third button beside Paste and Open file: the words kept in the cloud (restore).
+  final Widget? cloud;
 
   static const count = 24;
 
@@ -105,11 +110,27 @@ class _WordsInputState extends State<WordsInput> with WidgetsBindingObserver, Va
     }
     final start = widget.controller?.text ?? '';
     if (start.trim().isNotEmpty) _spread(RecoveryWords.fromText(start), 0, report: false);
+    widget.controller?.addListener(_fromController);
+  }
+
+  /// Words set on the controller from outside (the set kept in the iCloud Keychain, found
+  /// after the page is up) go into the cells: read only at the start, they stayed empty
+  /// while the page said "filled in".
+  void _fromController() {
+    final text = widget.controller!.text;
+    final cells = [for (final c in _cells) c.text.trim().toLowerCase()].where((w) => w.isNotEmpty).join(' ');
+    if (text == cells || text.trim().isEmpty) return;
+    for (final c in _cells) {
+      c.clear();
+    }
+    _spread(RecoveryWords.fromText(text), 0, report: false);
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _hide?.cancel();
+    widget.controller?.removeListener(_fromController);
     WidgetsBinding.instance.removeObserver(this);
     for (final c in _cells) {
       c.clear();
@@ -254,34 +275,21 @@ class _WordsInputState extends State<WordsInput> with WidgetsBindingObserver, Va
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(children: [
-          if (widget.paste)
-            TextButton.icon(
-              key: const ValueKey('words-paste'),
-              onPressed: widget.enabled ? _pasteAll : null,
-              icon: const Icon(Icons.content_paste_rounded, size: 18),
-              label: Text(l.modePaste),
-            ),
-          if (widget.paste && wordsExport)
-            TextButton.icon(
-              key: const ValueKey('words-open-file'),
-              onPressed: widget.enabled ? _openFile : null,
-              icon: const Icon(Icons.file_open_outlined, size: 18),
-              label: Text(l.wordsOpenFile),
-            ),
-          const Spacer(),
-          // An eye, as on every secret field: with Open file beside Paste the three
-          // labelled buttons did not fit a small phone.
-          IconButton(
+        // Just the eye above the grid: Paste, Open file and the cloud sit under it, the
+        // same row of three in the same places as Copy, Save and the cloud where the
+        // words are shown (owner 2026-11-18: loading mirrors saving).
+        Align(
+          alignment: Alignment.centerRight,
+          child: IconButton(
             key: const ValueKey('words-show'),
+            visualDensity: VisualDensity.compact,
             tooltip: _shown ? l.secretHide : l.secretShow,
             onPressed: () => _show(!_shown),
             icon: Icon(_shown ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20),
           ),
-        ]),
-        const SizedBox(height: 4),
+        ),
         LayoutBuilder(builder: (context, box) {
-          const gap = 6.0;
+          const gap = 5.0;
           final w = (box.maxWidth - gap * 2) / 3;
           return Wrap(
             key: const ValueKey('words-input'),
@@ -290,6 +298,21 @@ class _WordsInputState extends State<WordsInput> with WidgetsBindingObserver, Va
             children: [for (var i = 0; i < WordsInput.count; i++) SizedBox(width: w, child: _cell(context, l, i))],
           );
         }),
+        if (widget.paste)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Row(children: [
+              Expanded(child: WordsAction(key: const ValueKey('words-paste'), icon: Icons.content_paste_rounded, label: l.modePaste, onTap: widget.enabled ? _pasteAll : null)),
+              if (wordsExport) ...[
+                const SizedBox(width: 8),
+                Expanded(child: WordsAction(key: const ValueKey('words-open-file'), icon: Icons.file_open_outlined, label: l.wordsOpenFile, onTap: widget.enabled ? _openFile : null)),
+              ],
+              if (widget.cloud case final cloud?) ...[
+                const SizedBox(width: 8),
+                Expanded(child: cloud),
+              ],
+            ]),
+          ),
         if (_noKey)
           Padding(
             padding: const EdgeInsets.only(top: 10),
@@ -313,7 +336,7 @@ class _WordsInputState extends State<WordsInput> with WidgetsBindingObserver, Va
     final word = TextStyle(fontSize: CsType.subhead, fontWeight: FontWeight.w700, color: theme.colorScheme.onSurface);
     return Container(
       key: ValueKey('words-cell-$i'),
-      height: 42,
+      height: 36,
       padding: const EdgeInsets.only(left: 8, right: 6),
       decoration: BoxDecoration(
         color: _open(i) ? theme.cardColor : c.soft,
@@ -389,12 +412,13 @@ class _WordsInputState extends State<WordsInput> with WidgetsBindingObserver, Va
 /// Settings): the 24-word grid. (A `CS1-…` key from before 2026-10-21 is no longer
 /// taken: owner 2026-11-02.)
 class RecoveryKeyInput extends StatelessWidget {
-  const RecoveryKeyInput({super.key, required this.controller, required this.onChanged, this.enabled = true});
+  const RecoveryKeyInput({super.key, required this.controller, required this.onChanged, this.enabled = true, this.cloud});
   final TextEditingController controller;
   final VoidCallback onChanged;
   final bool enabled;
+  final Widget? cloud;
 
   @override
   Widget build(BuildContext context) =>
-      WordsInput(controller: controller, enabled: enabled, onCells: (_) => onChanged());
+      WordsInput(controller: controller, enabled: enabled, cloud: cloud, onCells: (_) => onChanged());
 }
