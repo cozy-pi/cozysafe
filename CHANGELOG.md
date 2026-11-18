@@ -4,6 +4,14 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
+## 1.0.7 (2026-11-18)
+
+### Changed
+- Making a vault with the iCloud (or Google) copy of the 24 words on: the step to type
+  four of them back is there too, with Skip going straight on, since the words are kept
+  in your account as well.
+- Deleting a vault follows the app's light or dark look, like every other page.
+
 ## 1.0.6 (2026-11-18)
 
 ### Added

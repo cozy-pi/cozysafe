@@ -445,8 +445,8 @@ name) are kept.
   elsewhere are a soft grey.
 - **Destructive actions are red** (owner 2026-10-21): Delete in the selection bar and
   Delete for good in Recently deleted use the system red, apart from the safe choice.
-- Deleting a vault uses the opposite brightness (light when the app is dark, and the
-  reverse) instead of red, so it is never taken for the lock screen.
+- Deleting a vault follows the app's light or dark look like every page (owner
+  2026-11-18: the opposite brightness it used to have read as a glitch).
 - Security rules (owner check, hidden secrets): `docs/security.md`.
 
 ## Design language (approved 2026-10-21, 0.1.10)

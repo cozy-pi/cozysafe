@@ -996,8 +996,7 @@ void main() {
       act: (t) => toLogin(t, steps: 1));
   _screen('steps-password', 'Đăng nhập · bước 3: mật khẩu', wizard, setup: withEntries,
       act: (t) => toLogin(t, steps: 2));
-  _screen('steps-2fa', 'Đăng nhập · bước 4: mã xác minh (không bắt buộc)', wizard,
-      change: 'SỬA: chỉ còn Bỏ qua: thành nút viền chia đôi với Quay lại cho cân', setup: () {
+  _screen('steps-2fa', 'Đăng nhập · bước 4: mã xác minh (không bắt buộc)', wizard, setup: () {
     withEntries();
     qrMock();
   }, act: (t) => toLogin(t, steps: 3));
@@ -1516,7 +1515,6 @@ void main() {
       setup: () => TopSecretMode.debugClosesItself = true);
   _screen('ts-close-app', 'iPhone/iPad sau khi bật: đóng app rồi mở lại', () => const CloseAppPage(on: true));
   _screen('new-vault-mode', 'Tạo két đầu tiên · bước 1: chọn chế độ, "đổi được sau"',
-      change: 'SỬA: Quay lại và Tiếp chia đôi hàng dưới cùng (như bước Face ID); bỏ nút quay lại ở trên',
       () => const NewVaultScreen(libraryDir: '', first: true),
       setup: () => NewVaultScreen.debugWords = List.filled(24, 'word').join(' '),);
   _screen('new-vault-mode-ts', 'Tạo két đầu tiên · chọn Tuyệt mật', () => const NewVaultScreen(libraryDir: '', first: true),
@@ -1628,8 +1626,7 @@ void main() {
   Widget added(List<SyncEvent> events) => page('Từ máy khác', SyncProgress(restoring: true, events: Stream.fromIterable(events), onSynced: () {}, waiting: const AddCodeSearching()));
   _screen('add-code-waiting', 'Máy cũ · Thiết lập máy mới: chờ máy mới tìm tới (2 phút)', invite, setup: () => InvitePage.debugSeconds = 107);
   _screen('add-code-searching', 'Máy mới · Khôi phục → Từ máy khác: tìm máy cũ trên Wi-Fi', () => added(const []),);
-  _screen('add-code-shown', 'Máy mới · đã tìm thấy máy cũ: hiện mã 8 số để gõ trên máy cũ', () => added([_named(SyncStep.addCode, '12345678', 0)]),
-      marks: [() => find.byKey(const ValueKey('add-code-digits'))]);
+  _screen('add-code-shown', 'Máy mới · đã tìm thấy máy cũ: hiện mã 8 số để gõ trên máy cũ', () => added([_named(SyncStep.addCode, '12345678', 0)]));
   _screen('add-code-entry', 'Máy cũ · máy mới đã nối: gõ 8 số máy mới đang hiện', invite,
       setup: () {
     InvitePage.debugSeconds = 107;
@@ -2210,8 +2207,7 @@ void main() {
   });
   }
   const words = 'bounce announce episode wreck engine define poet hand figure slide beef confirm frown notice actor mom surround nurse feature ski gadget volume cousin cancel';
-  _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''),
-      change: 'SỬA: dùng khung bước chung: ô mật khẩu ở giữa, Quay lại | Xem chia đôi');
+  _screen('kit-password', 'Khoá khôi phục: sau Face ID còn phải nhập mật khẩu két', () => const KitPasswordScreen(libraryDir: ''));
   _screen('kit', 'Khoá khôi phục: 24 từ che sẵn, có nút Đổi khoá khôi phục', () => EmergencyKitScreen(keyText: words, confirm: false, onChange: () {}),
       marks: [_titleBar]);
   Widget change(int step) => ChangeKeyScreen(libraryDir: '', password: '', onBackup: () async {});
@@ -2234,7 +2230,6 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('backup-password', 'Mật khẩu sao lưu: ô nhập che sẵn', () => const BackupPasswordScreen(libraryDir: '', change: false),
-      change: 'SỬA: mọi trang theo bước (đặt mật khẩu, khôi phục, thêm mật khẩu) cũng chia đôi: Quay lại | nút chính',
       act: (t) async {
     await t.enterText(find.byType(TextField).first, 'orange kettle whispers at dawn');
   });
@@ -2323,10 +2318,10 @@ void main() {
     await t.tap(find.byKey(const ValueKey('vault-slot-9b3ad0e1f2c4475a8e61d39b2f0c18d3')));
     await t.pumpAndSettle();
   });
-  _screen('vault-delete-other', 'Quản lý két · Xoá két đang khoá: thông tin két + mật khẩu của két', () => DeleteVaultScreen(libraryDir: '', otherId: '3fa9c1d2e4b5a6978877665544332211', sizeText: '37 MB', slot: slots()[1]),
+  _screen('vault-delete-other', 'Quản lý két · Xoá két đang khoá: thông tin két + mật khẩu của két', change: 'SỬA: theo giao diện sáng/tối của app, không đảo ngược nữa', () => DeleteVaultScreen(libraryDir: '', otherId: '3fa9c1d2e4b5a6978877665544332211', sizeText: '37 MB', slot: slots()[1]),
       setup: () => DeleteVaultScreen.debugDrive = true);
   _screen('vault-delete-pending', 'Quản lý két · Xoá két đang chờ xoá: giờ yêu cầu + giờ xoá, nút Giữ két lại', () => DeleteVaultScreen(libraryDir: '', otherId: '9b3ad0e1f2c4475a8e61d39b2f0c18d3', sizeText: '212 KB', slot: slots()[2], deleteAtMs: _now + 5 * Duration.millisecondsPerDay));
-  _screen('vault-delete-open', 'Cài đặt → Quản lý két → két đang mở → Xoá két', () => DeleteVaultScreen(libraryDir: '', vault: const VaultInfo(code: '7F3A-9K2Q', libraryDir: '', id: 'e0a966aed6bec8151ebb59139e5aa773', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false), sizeText: '1.8 GB · 342 mục', slot: slots()[0]),
+  _screen('vault-delete-open', 'Cài đặt → Quản lý két → két đang mở → Xoá két', change: 'SỬA: theo giao diện sáng/tối của app, không đảo ngược nữa', () => DeleteVaultScreen(libraryDir: '', vault: const VaultInfo(code: '7F3A-9K2Q', libraryDir: '', id: 'e0a966aed6bec8151ebb59139e5aa773', name: '', icon: 'home', color: 'green', hasPassword: true, topSecret: false), sizeText: '1.8 GB · 342 mục', slot: slots()[0]),
       setup: () {
     DeleteVaultScreen.debugDrive = true;
     VaultManagerScreen.debugItems = 342;
@@ -2338,8 +2333,7 @@ void main() {
       setup: () => TestLogin.debugShown = true);
   _screen('lock-test', 'Màn khoá · bản test kín: nút Đăng nhập thử nghiệm ngay trên màn', lock,
       setup: () => TestLogin.debugShown = true);
-  _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'),
-      change: 'Dán | Mở tệp | iCloud: một hàng 3 nút dưới lưới, đúng vị trí và kiểu như Sao chép | Lưu ra tệp | iCloud lúc lưu; lưới 24 từ thấp hơn', marks: [() => find.byKey(const ValueKey('restore-cloud'))]);
+  _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'));
   _screen('restore-keys-pick', 'Khôi phục · bấm iCloud, tài khoản có 3 bộ 24 từ: chọn bộ nào (ghi két mỗi bộ mở)', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'),
       setup: () => KeyBackup.debugStore = {
             'secret-key.a1': jsonEncode({'v': 1, 'key': base64Encode(List.filled(32, 161)), 'vaults': ['7F3A-9K2Q']}),
@@ -2349,8 +2343,7 @@ void main() {
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('restore-cloud')));
         await t.pumpAndSettle();
-      },
-      change: 'MỚI: không tự điền nữa — bấm iCloud, có nhiều bộ thì chọn', marks: [() => find.byKey(const ValueKey('cloud-set-0'))]);
+      });
   _screen('restore-keys-cloud', 'Khôi phục · đã chọn bộ từ iCloud: 24 từ điền vào, nút iCloud sáng xanh, chỉ còn gõ mật khẩu', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'),
       setup: () {
         RecoveryWords.makesKey = (w) => w == _cloudWords;
@@ -2359,11 +2352,9 @@ void main() {
       act: (t) async {
         await t.tap(find.byKey(const ValueKey('restore-cloud')));
         await t.pumpAndSettle();
-      },
-      change: 'Sau khi bấm iCloud (một bộ): điền vào, ghi rõ nguồn', marks: [() => find.byKey(const ValueKey('restore-words-found'))]);
+      });
   _screen('restore-keys-google', 'Khôi phục · Android: nút thứ ba là Google', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'),
-      setup: () => KeyBackup.debugGoogle = true,
-      change: 'Bản Android: Dán | Mở tệp | Google', marks: [() => find.byKey(const ValueKey('restore-cloud'))]);
+      setup: () => KeyBackup.debugGoogle = true);
   _screen('restore-keys-typing', 'Khôi phục · đang gõ: 2 từ đã xong (chấm + ✓), 1 từ sai (viền đỏ), đang gõ ô 4', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'), act: (t) async {
     await t.enterText(find.byKey(const ValueKey('words-field-0')), 'boun');
     await t.enterText(find.byKey(const ValueKey('words-field-1')), 'announce');
@@ -2396,7 +2387,6 @@ void main() {
   _screen('restore-drive', 'Khôi phục · Google Drive (24 từ đã nhập ở bước 1)', () => const DriveJoinScreen(libraryDir: '', words: 'fake', password: 'fake'),
       setup: () => DriveJoinScreen.debugAccount = 'me@example.com');
   _screen('new-vault-biometric', 'Tạo két · Face ID: Bật hoặc Để sau (sau mật khẩu)', () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'SỬA: két đã tạo xong nên không còn nút quay lại; "Để sau" và "Bật" hai nút ngang nhau cùng một hàng',
       setup: () {
     useWords();
     NewVaultScreen.debugBiometricStep = true;
@@ -2404,16 +2394,12 @@ void main() {
   // A vault in a few taps (owner 2026-11-05): the words with their cloud copy, then the
   // password last, which makes the vault.
   _screen('new-vault-words', 'Tạo két · 24 từ, bản sao iCloud Keychain bật sẵn', () => const NewVaultScreen(libraryDir: '', first: true),
-      setup: useWords,
-      change: 'SỬA: bản sao iCloud thành nút thứ ba cạnh Sao chép, Lưu ra tệp (xanh = đang bật, chạm để tắt/bật, có thông báo giải thích); bỏ khoảng trống thừa quanh nút Xem',
-      marks: [() => find.byKey(const ValueKey('words-cloud'))]);
+      setup: useWords);
   _screen('new-vault-words-google', 'Tạo két · Android: bản sao với Google', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: () {
     useWords();
     KeyBackup.debugGoogle = true;
-  },
-      change: 'SỬA: bản sao Google thành nút thứ ba cạnh Sao chép, Lưu ra tệp',
-      marks: [() => find.byKey(const ValueKey('words-cloud'))]);
+  });
   _screen('new-vault-words-shown', 'Tạo két · 24 từ sau khi chạm Xem', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords, act: (t) => tapKey(t, 'secret-show'));
   Future<void> cloudOff(WidgetTester t) async {
@@ -2421,13 +2407,20 @@ void main() {
     await t.pumpAndSettle();
   }
   _screen('new-vault-words-off', 'Tạo két · tắt bản sao: nút thành "Tôi đã ghi lại"', () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'MỚI: chạm nút iCloud để tắt: nút thành viền, có thông báo "hãy chép ra giấy, rồi gõ lại bốn từ"',
       setup: useWords,
       act: cloudOff);
   _screen('new-vault-check', 'Tạo két · gõ lại 4 từ, có "Bỏ qua, kiểm sau"', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords,
       act: (t) async {
     await cloudOff(t);
+    await tapKey(t, 'words-done');
+    await t.pumpAndSettle();
+  });
+  _screen('new-vault-check-cloud', 'Tạo két · bật iCloud: vẫn gõ lại 4 từ, Bỏ qua là đi tiếp luôn (không cảnh báo)', () => const NewVaultScreen(libraryDir: '', first: true),
+      setup: useWords,
+      change: 'MỚI: bật iCloud vẫn có bước gõ lại 4 từ; "Bỏ qua" đi tiếp ngay vì 24 từ đã có trên iCloud',
+      marks: [() => find.byKey(const ValueKey('check-skip'))],
+      act: (t) async {
     await tapKey(t, 'words-done');
     await t.pumpAndSettle();
   });
@@ -2457,13 +2450,9 @@ void main() {
   }
   _screen('new-vault-review', 'Tạo két · bước cuối: Xem lại, nút Tạo két', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: useWords,
-      change: 'MỚI: bước cuối Xem lại: biểu tượng và màu, chế độ, 24 từ, mật khẩu; chạm dòng nào là chọn lại dòng đó; nút chính "Tạo két"',
-      marks: [() => find.byKey(const ValueKey('review-look')), () => find.byKey(const ValueKey('review-create'))],
       act: toReview);
   _screen('new-vault-look', 'Tạo két · bước 2: Biểu tượng và màu (sau Chế độ)', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: () => NewVaultScreen.debugWords = words,
-      change: 'MỚI: bước riêng chọn biểu tượng và màu, ngay sau bước chọn chế độ; ở Xem lại chạm dòng đó là quay về bước này',
-      marks: [() => find.byKey(const ValueKey('look-badge'))],
       act: (t) async {
     await t.tap(find.byKey(const ValueKey('mode-everyday')));
     await t.pump();
@@ -2471,7 +2460,6 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('new-vault-password', 'Tạo két · mật khẩu: đang gõ', () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'SỬA: ô mật khẩu nằm giữa màn (mọi trang theo bước đều căn giữa nội dung)',
       setup: useWords, act: (t) async {
     await tapKey(t, 'words-done');
     await t.pumpAndSettle();
@@ -2480,7 +2468,6 @@ void main() {
   });
   _screen('new-vault-second', 'Tạo két (máy đã có két) · vào thẳng chọn chế độ', () => const NewVaultScreen(libraryDir: '', first: false),
       setup: () => NewVaultScreen.debugWords = words,
-      change: 'SỬA: bỏ nút Hủy dưới cùng; không muốn tạo thì bấm nút quay lại ở trên',
       );
   Future<void> toKeys(WidgetTester t) async {
     await t.tap(find.byKey(const ValueKey('mode-everyday')));
@@ -2523,8 +2510,7 @@ void main() {
         await t.tapAt(r.topLeft + const Offset(150, 108));
         await t.pump();
       });
-  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'),
-      marks: [() => find.byWidgetPredicate((w) => w.runtimeType.toString() == 'ViewerTopBar').first]);
+  _screen('bottom-file-image', 'Tệp · mở CCCD-mat-truoc.jpg', () => FileViewScreen(item: _items.firstWhere((i) => i.name == 'CCCD-mat-truoc.jpg'), vaultId: 'v'));
   _screen('bottom-file-other', 'Tệp · mở hop-dong.docx', () => FileViewScreen(item: _item('d1', ItemKind.file, 'hop-dong.docx', 48000), vaultId: 'v'));
   _screen('bottom-trash', 'Đã xoá gần đây · Chọn ở thanh dưới', () => const Readable(child: TrashScreen()));
   if (selectShown) {
@@ -2669,8 +2655,7 @@ void main() {
       setup: () => _contentWaits = true,
       act: (t) => typeSearch(t, 'hoaMai'));
   _screen('originals-only-copy', 'Vừa cất 5 ảnh vào két · két chưa có bản thứ hai ở đâu', () => sheetOver(const DeleteOriginalsSheet(count: 5, photos: true, onlyCopy: true)),
-      section: 'library',
-      marks: [() => find.byKey(const ValueKey('originals-only-copy'))]);
+      section: 'library');
   _screen('qr-scan', 'Mã xác minh · quét mã QR bằng camera', () => const QrCameraScreen(),
       setup: () => QrCameraScreen.debugPreview = const ColoredBox(color: Color(0xFF2A2F36), child: Center(child: QrView(text: _qrText, size: 170))));
 }

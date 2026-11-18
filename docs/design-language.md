@@ -175,8 +175,8 @@ removed). The strength line under it says how to make a better one.
 
 **Steps** (create a vault, restore, add a password), all in one frame, `StepPage`
 (creating a vault moved onto it 2026-11-07): create is Mode → Icon and colour → (24 words:
-the device's set or a new one) → 24 words → four typed back (skipped while the cloud copy
-is on) → Password → Review → Face ID. Progress on top, the title big on the left, the
+the device's set or a new one) → 24 words → four typed back (with the cloud copy on, Skip
+goes straight on; off, it warns first) → Password → Review → Face ID. Progress on top, the title big on the left, the
 content centred in the space left (owner 2026-11-18, every step page; long content
 scrolls), and at the bottom one row that stays put on every step: Back (outlined,
 `StepSideButton`) and the main button, half the width each (`PinnedAction`; owner

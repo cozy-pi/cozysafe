@@ -853,8 +853,8 @@ camera could see them), only with a Show button. Rules and the list of settings:
 
 **Black and white look (approved for building).** Everything in ink and page colour,
 except the vault's own icon, which keeps its colour (shown big after unlocking, in
-Settings, when creating a vault). The delete screen uses the opposite brightness instead
-of red.
+Settings, when creating a vault). The delete screen used the opposite brightness instead
+of red; since 2026-11-18 it follows the app's own (owner: the flip read as a glitch).
 
 **Deleting forgotten vaults: deferred** by the owner. The work (Settings → Vaults on this
 device, delete with the open vault's PIN) is kept on a local branch; open question when it

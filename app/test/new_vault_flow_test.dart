@@ -140,13 +140,17 @@ void main() {
     KeyBackup.debugStore = null;
   });
 
-  testWidgets('with the cloud copy (on by default) the words are not asked back, and the copy names the vault', (t) async {
+  testWidgets('with the cloud copy (on by default) the words are asked back with a Skip that asks nothing, and the copy names the vault', (t) async {
     await _start(t, topSecret: false);
     expect(find.byKey(const ValueKey('words-cloud')), findsOneWidget);
     expect(t.widget<WordsAction>(find.byKey(const ValueKey('words-cloud'))).on, isTrue);
     await t.tap(find.byKey(const ValueKey('words-done')));
     await _settle(t);
-    // Straight to the password: no check.
+    // The check comes too; with the copy kept, Skip goes on without a warning.
+    expect(find.byKey(const ValueKey('check-skip')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('check-skip')));
+    await _settle(t);
+    expect(find.byKey(const ValueKey('check-skip-yes')), findsNothing);
     expect(find.byKey(const ValueKey('new-password')), findsOneWidget);
     expect(_cloud.keys, ['secret-key.a1b2']);
     expect(jsonDecode(_cloud['secret-key.a1b2']!)['vaults'], isEmpty);
@@ -200,6 +204,8 @@ void main() {
   testWidgets('leaving before the vault is made drops its draft', (t) async {
     await _start(t, topSecret: false);
     await t.tap(find.byKey(const ValueKey('words-done')));
+    await _settle(t);
+    await t.tap(find.byKey(const ValueKey('check-skip')));
     await _settle(t);
     // The password step drafts the vault, so its code is known before anything is typed.
     expect(_fake.drafts, 1);

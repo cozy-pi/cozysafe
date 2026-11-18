@@ -267,7 +267,8 @@ By case:
 - **The four words typed back can be skipped** (everyday vaults, 2026-11-05), after a
   card saying a word written wrong loses the vault on another phone; a tip reminds once
   on a later open, and Settings → Check your 24 words clears it. With the cloud copy the
-  check is not asked. A Top secret vault always types them back.
+  check is still offered and Skip goes on without the card or the reminder (2026-11-18).
+  A Top secret vault always types them back.
 - **The error log** (Settings → Report a problem) keeps the last 200 failures as a time,
   a place and a fixed code (`drive-full`, `io-timed-out`), in a plain file beside the
   preferences: no names, content, keys, paths or network data, so it can be copied into
