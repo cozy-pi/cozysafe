@@ -27,9 +27,9 @@ import 'welcome.dart';
 /// Delete a vault from this device, confirmed with its own password (no PIN since
 /// 2026-10-28): the open one ([vault]), or another one from Vaults on this device
 /// ([otherId], which pops true when it went). Its copy in Google Drive goes too only when
-/// the person ticks it (owner 2026-10-31). In the opposite brightness (light when the app
-/// is dark, and the reverse), so it is never taken for the lock screen. Wrong passwords
-/// count towards the same waits as the lock screen.
+/// the person ticks it (owner 2026-10-31). In the app's own brightness, as every page
+/// (owner 2026-11-18: the opposite one, meant to set it apart from the lock screen, read
+/// as a glitch). Wrong passwords count towards the same waits as the lock screen.
 class DeleteVaultScreen extends StatefulWidget {
   const DeleteVaultScreen({
     super.key,
@@ -253,11 +253,6 @@ class _DeleteVaultScreenState extends State<DeleteVaultScreen> with VaultLockAwa
 
   @override
   Widget build(BuildContext context) {
-    final inverted = Theme.of(context).brightness == Brightness.dark ? Brightness.light : Brightness.dark;
-    return Theme(data: buildTheme(inverted), child: Builder(builder: _page));
-  }
-
-  Widget _page(BuildContext context) {
     final l = AppLocalizations.of(context);
     final ink = Theme.of(context).colorScheme.onSurface;
     return Scaffold(

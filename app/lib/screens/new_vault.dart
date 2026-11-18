@@ -125,7 +125,8 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
         // Another vault on this device: its 24 words, a new set or the one the device
         // already has (owner 2026-11-01: a choice). The first vault always makes its set.
         if (!widget.first && !_forcedOwn) _Step.keys,
-        if (_newWords) ...[_Step.words, if (!_cloudOn) _Step.check],
+        // Typed back even with the cloud copy on, Skip right there (owner 2026-11-18).
+        if (_newWords) ...[_Step.words, _Step.check],
         _Step.password,
         // Everything once more, the look to choose, and "Create vault" (owner 2026-11-18:
         // a last step that only said Next felt wrong). The vault is made here.
@@ -482,7 +483,7 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     return SecretKeyStore.read();
   }
 
-  /// "Next" under the words: with the cloud copy, it is made and the check is not asked;
+  /// "Next" under the words: with the cloud copy, it is made, then the check (Skip goes on);
   /// when the store keeps nothing, the words are typed back as without it.
   Future<void> _wordsDone(AppLocalizations l) async {
     if (_cloudOn) {
@@ -493,11 +494,10 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
       setState(() => _busy = false);
       if (ok) {
         _cloudKey = key;
-        _go(_Step.password);
-        return;
+      } else {
+        showToast(context, KeyBackup.google ? l.wordsCloudFailedGoogle : l.wordsCloudFailed, icon: Icons.cloud_off_rounded);
+        setState(() => _cloud = false);
       }
-      showToast(context, KeyBackup.google ? l.wordsCloudFailedGoogle : l.wordsCloudFailed, icon: Icons.cloud_off_rounded);
-      setState(() => _cloud = false);
     }
     _checkOk = false;
     _ask = pickFourWords(fixed: NewVaultScreen.debugWords != null, not: _ask);
@@ -515,7 +515,9 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
   }
 
   /// Skip typing the four words back, after a card says what that risks.
+  /// With the cloud copy on, the words are kept there too: Skip goes on, nothing asked.
   Future<void> _skipCheck(AppLocalizations l) async {
+    if (_cloudOn) return _go(_Step.password);
     final yes = await showCard<bool>(context, title: l.wordsSkipTitle, builder: (context) {
       final c = CsColors.of(context);
       return Padding(
