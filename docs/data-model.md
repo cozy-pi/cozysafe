@@ -62,7 +62,7 @@ All under the app's support folder (`getApplicationSupportDirectory()`):
 | `library-<16 hex>/` | Another library, for a vault that has its own 24 words. Same layout. |
 | `tmp/` | Windows and Linux only: the app's private temporary folder (user-only). Phones and the Mac use the system's per-app temporary folder. Emptied at start and on lock. |
 | `error-log` | Short fixed error codes for "Copy details". No names, paths or content. |
-| Preference files | One small file per setting, not secret: `vault-code.<vault id>` (the vault's code, see below), `key-backup.<fingerprint>` (`1` when the 24 words have a cloud copy), `last-backup`, view and sort choices, `debug-mode`. |
+| Preference files | One small file per setting, not secret: `vault-code.<vault id>` (the vault's code, see below), `key-backup.<fingerprint>` (`1` when the 24 words have a cloud copy), `key-backup-ms.<fingerprint>` (when this device last kept that copy, shown on Open this vault again), `key-backup-named.<vault code>` (`<fingerprint>/<icon>/<colour>` the copy last named for that vault, so opening it again reads nothing from the cloud), `last-backup`, view and sort choices, `debug-mode`. |
 
 Source: `app/lib/main.dart`, `app/lib/top_secret_mode.dart` (`TopSecretMode.start`,
 `VaultCode`), `app/lib/prefs.dart`, `app/lib/temp_files.dart`, `app/lib/error_log.dart`,
@@ -454,7 +454,7 @@ These never go into the library folder. Values are base64 unless noted.
 | Secret | Where | Name | Leaves the device? |
 |---|---|---|---|
 | 24 words (32-byte Secret Key) | iOS Keychain (`cozysafe.secret-key`, after first unlock, this device only), macOS legacy keychain, Android Keystore-backed storage (`cozysafe_secret`), Windows Credential Manager, libsecret | `secret-key` for `library/`, `secret-key-<16 hex>` for `library-<16 hex>/` | No |
-| Cloud copy of the 24 words (optional, never for a Top secret vault) | iCloud Keychain (`cozysafe.secret-key.icloud`, synchronizable) or Google Block Store (only when Google encrypts it end to end) | `secret-key.<4 hex fingerprint>`, value JSON `{"v":1,"key":<base64>,"vaults":[<vault codes>]}`; legacy `secret-key` | Yes, end-to-end encrypted by Apple / Google |
+| Cloud copy of the 24 words (optional, never for a Top secret vault) | iCloud Keychain (`cozysafe.secret-key.icloud`, synchronizable) or Google Block Store (only when Google encrypts it end to end) | `secret-key.<4 hex fingerprint>`, value JSON `{"v":1,"key":<base64>,"vaults":[<vault codes>],"looks":{<vault code>:"<icon>/<colour>"}}` (`looks` since 1.0.8, optional, beside `vaults` so older apps still read it); legacy `secret-key` | Yes, end-to-end encrypted by Apple / Google |
 | Biometric key (32 bytes) | iOS Keychain `cozysafe.biometric` (passcode set, `biometryCurrentSet`); Android `cozysafe_biometric` (strong biometrics, check per read); Mac: wrapped by a Secure Enclave key, in the legacy keychain | `vault-unlock-key`; Mac `vault-unlock-key-enclave` | No |
 | PIN device key (retired feature) | `cozysafe.pin` / `cozysafe_pin` | `pin-device-key-hw` (wrapped by a hardware key), `pin-device-key` (older, clear) | No |
 | Wrong-try counters | `cozysafe.pin` / `cozysafe_pin` | `pin-fails`, `pin-wait-until`, `password-fails`, `password-wait-until` | No |

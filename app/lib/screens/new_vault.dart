@@ -281,8 +281,19 @@ class _NewVaultScreenState extends State<NewVaultScreen> {
     }
     _pw.clear();
     _pwAgain.clear();
-    // The copy of the words names the vault now that it exists.
-    if (_cloudKey case final key?) await KeyBackup.save(key, vault: vault.code);
+    // The copy of the words names the vault now that it exists, and says so once: which
+    // set, for which vault, and where to see it again (owner 2026-11-18: nothing told what
+    // was kept, nor how to find it later).
+    if (_cloudKey case final key?) {
+      if (await KeyBackup.save(key, vault: vault.code, icon: vault.icon, color: vault.color) && mounted && vault.code.isNotEmpty) {
+        final l = AppLocalizations.of(context);
+        showToast(
+            context,
+            l.keyBackupSavedFor(rust.secretKeyFingerprint(key: key).toUpperCase(), vault.code,
+                KeyBackup.google ? 'Google' : 'iCloud Keychain', '${l.settings} → ${l.reopenTitle}'),
+            icon: Icons.cloud_done_rounded);
+      }
+    }
     if (_checkSkipped) Prefs.write(wordsUncheckedPref(vault.id), '1');
     _bioKind ??= await BiometricUnlock.available();
     if (!mounted) return;

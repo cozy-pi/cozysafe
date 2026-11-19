@@ -242,6 +242,9 @@ By case:
   still needs the vault password. One item per set of words (`secret-key.<4 hex
   fingerprint>`, ADR 0008), holding the key and the codes of the vaults using it, so
   several vaults or sets never overwrite each other; a restore picks the set that fits.
+  Since 1.0.8 it also holds each vault's icon and colour by its code, so the restore shows
+  the badge beside the code (vaults have no name): one more small fact for whoever takes
+  the account, who already has the words.
   Turning it on or off in Settings asks for the owner. Off deletes the copy for every
   device on the account, and it may be the only place the words are: since 0.3.1 a card
   says so first and offers Check your 24 words (it went on one tap of the switch, with

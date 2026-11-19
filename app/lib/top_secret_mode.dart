@@ -49,7 +49,19 @@ abstract final class TopSecretMode {
     VaultCode.remember(vault);
     // A Top secret vault's 24 words never stay in the cloud (ADR 0008): its set may have
     // been sent from an everyday vault sharing it, or before its mode was turned on.
-    if (vault.topSecret) _noCloudCopy(vault.libraryDir);
+    if (vault.topSecret) {
+      _noCloudCopy(vault.libraryDir);
+    } else {
+      _nameInCloud(vault);
+    }
+  }
+
+  static Future<void> _nameInCloud(VaultInfo vault) async {
+    if (!KeyBackup.supported || vault.code.isEmpty) return;
+    try {
+      final key = await SecretKeyStore.read(vault.libraryDir.isEmpty ? null : vault.libraryDir);
+      if (key != null) await KeyBackup.name(key, vault: vault.code, icon: vault.icon, color: vault.color);
+    } catch (_) {}
   }
 
   static Future<void> _noCloudCopy(String dir) async {

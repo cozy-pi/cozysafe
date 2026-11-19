@@ -4,6 +4,26 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
+## 1.0.8 (2026-11-19)
+
+### Added
+- Settings: "Open this vault again" shows, in one place, what opens this vault on a new
+  phone: its set of 24 words and how many vaults share it, whether iCloud (Android:
+  Google) keeps a copy and since when, where the password manager keeps its password,
+  the vault's code, and the three steps on a new phone. Also from the vault's card in
+  Vaults on this device.
+- Making a vault: once the 24 words are kept in iCloud (Android: Google), a message says
+  which set, for which vault, and where to see it again.
+- Restoring: when choosing which set of 24 words to take from iCloud (Android: Google),
+  each vault's code shows with its icon and colour. Vaults made before this version get
+  theirs the next time they open.
+
+### Changed
+- The 24-word step says when you need them: on a new phone or after reinstalling the app,
+  together with the vault's password.
+- Vaults on this device: "Vault code" now shows the vault's code (the one the password
+  manager uses), not the start of an internal id.
+
 ## 1.0.6 (2026-11-18)
 
 ### Added

@@ -10,6 +10,7 @@ import '../src/rust/api/vault.dart' as rust;
 import '../theme.dart';
 import '../widgets/steps.dart';
 import '../widgets/recovery_words.dart' show WordsAction;
+import '../widgets/identity.dart' show VaultBadge;
 import '../widgets/toast.dart';
 import '../widgets/vault_bar.dart' show showCard;
 import '../widgets/words_input.dart';
@@ -176,7 +177,23 @@ Future<KeyCopy?> pickCloudWords(BuildContext context, {bool Function(KeyCopy)? f
             key: ValueKey('cloud-set-$i'),
             leading: const Icon(Icons.key_rounded),
             title: Text(l.keyBackupSet(rust.secretKeyFingerprint(key: copy.key).toUpperCase())),
-            subtitle: Text(copy.vaults.isEmpty ? l.keyBackupSetNoVault : l.keyBackupSetVaults(copy.vaults.join(', '))),
+            // Vaults have no name: each code beside its badge, when the copy knows it
+            // (owner 2026-11-18: a bare code said nothing on a new phone).
+            subtitle: copy.vaults.isEmpty
+                ? Text(l.keyBackupSetNoVault)
+                : Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Wrap(spacing: 12, runSpacing: 6, children: [
+                      for (final code in copy.vaults)
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          if (copy.looks[code] case final look?) ...[
+                            VaultBadge(icon: look.icon, color: look.color, size: 22),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(code, key: ValueKey('cloud-set-$i-$code')),
+                        ]),
+                    ]),
+                  ),
             onTap: () => Navigator.pop(context, copy),
           ),
       ]),

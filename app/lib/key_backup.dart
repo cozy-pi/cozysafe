@@ -11,9 +11,13 @@ import 'src/rust/api/vault.dart' as rust;
 /// One set of 24 words kept in the cloud: the key, and the codes of the vaults that use it
 /// (ADR 0008), so a new phone knows which set opens which vault.
 class KeyCopy {
-  const KeyCopy(this.key, this.vaults);
+  const KeyCopy(this.key, this.vaults, [this.looks = const {}]);
   final Uint8List key;
   final List<String> vaults;
+  /// A vault's icon and colour by its code (`icon/color`), when the device that kept the
+  /// copy knew them: vaults have no name, so a new phone shows each code beside its badge.
+  /// Absent in copies kept before 1.0.8.
+  final Map<String, ({String icon, String color})> looks;
 }
 
 /// The 24 words kept in the person's iCloud Keychain too, as a synchronizable keychain
@@ -62,6 +66,17 @@ abstract final class KeyBackup {
   static Map<String, String>? debugStore;
 
   static String _pref(String fp) => 'key-backup.$fp';
+  static String _savedPref(String fp) => 'key-backup-ms.$fp';
+  // What the copy last said of a vault: `<fingerprint>/<icon>/<color>`, so opening it
+  // again reads nothing from the cloud.
+  static String _namedPref(String code) => 'key-backup-named.$code';
+
+  /// When this device last kept the set with this key there; null when not known (kept
+  /// before 1.0.8, or by another device).
+  static DateTime? savedAt(Uint8List key) {
+    final ms = int.tryParse(Prefs.read(_savedPref(rust.secretKeyFingerprint(key: key))) ?? '');
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
 
   /// This device put a copy of the set with this key there (and has not taken it out).
   static bool isOn(Uint8List key) => Prefs.read(_pref(rust.secretKeyFingerprint(key: key))) == '1';
@@ -109,7 +124,16 @@ abstract final class KeyBackup {
     if (value == null) return null;
     try {
       final j = jsonDecode(value) as Map<String, dynamic>;
-      return KeyCopy(base64Decode(j['key'] as String), [for (final v in j['vaults'] as List) v as String]);
+      final looks = <String, ({String icon, String color})>{};
+      // `looks` was added beside `vaults`, not inside it: an older app still reads the copy.
+      if (j['looks'] case final Map<String, dynamic> m) {
+        for (final MapEntry(key: code, :value) in m.entries) {
+          if (value case final String v when v.contains('/')) {
+            looks[code] = (icon: v.substring(0, v.indexOf('/')), color: v.substring(v.indexOf('/') + 1));
+          }
+        }
+      }
+      return KeyCopy(base64Decode(j['key'] as String), [for (final v in j['vaults'] as List) v as String], looks);
     } catch (_) {
       // Before ADR 0008 the value was the bare key in base 64.
       try {
@@ -120,10 +144,10 @@ abstract final class KeyBackup {
     }
   }
 
-  /// Keep the set with [key] there, adding [vault] (its code) to the vaults it names;
-  /// true once it reads back. False when the store keeps nothing (no screen lock on
-  /// Android, signed out of iCloud).
-  static Future<bool> save(Uint8List key, {String? vault}) async {
+  /// Keep the set with [key] there, adding [vault] (its code) to the vaults it names, with
+  /// its [icon] and [color] when given; true once it reads back. False when the store keeps
+  /// nothing (no screen lock on Android, signed out of iCloud).
+  static Future<bool> save(Uint8List key, {String? vault, String? icon, String? color}) async {
     if (!supported) return false;
     final fp = rust.secretKeyFingerprint(key: key);
     if (fp.isEmpty) return false;
@@ -134,12 +158,41 @@ abstract final class KeyBackup {
       // under the same name would overwrite the other, so it is refused instead.
       if (had != null && !listEquals(had.key, key)) return false;
       final vaults = {...?had?.vaults, ?vault}.toList();
-      final ok = await _write(name, jsonEncode({'v': 1, 'key': base64Encode(key), 'vaults': vaults}));
-      if (ok) Prefs.write(_pref(fp), '1');
+      final looks = {
+        for (final MapEntry(key: code, value: look) in (had?.looks ?? const {}).entries) code: '${look.icon}/${look.color}',
+        if (vault != null && (icon ?? '').isNotEmpty && (color ?? '').isNotEmpty) vault: '$icon/$color',
+      };
+      final ok = await _write(name, jsonEncode({'v': 1, 'key': base64Encode(key), 'vaults': vaults, if (looks.isNotEmpty) 'looks': looks}));
+      if (ok) {
+        Prefs.write(_pref(fp), '1');
+        Prefs.write(_savedPref(fp), '${DateTime.now().millisecondsSinceEpoch}');
+        if (vault != null) Prefs.write(_namedPref(vault), '$fp/${icon ?? ''}/${color ?? ''}');
+      }
       return ok;
     } catch (_) {
       return false;
     }
+  }
+
+  /// A vault opened whose set is in the cloud: name it there, with its look, when the copy
+  /// does not yet (a copy kept before 1.0.8 names no look, and the look can change), so a
+  /// new phone shows its badge. Silent; nothing when the copy already says so.
+  static Future<void> name(Uint8List key, {required String vault, required String icon, required String color}) async {
+    if (!supported || vault.isEmpty || !isOn(key)) return;
+    final fp = rust.secretKeyFingerprint(key: key);
+    if (Prefs.read(_namedPref(vault)) == '$fp/$icon/$color') return;
+    try {
+      final had = _parse(await _read('$_prefix$fp'));
+      if (had == null || !listEquals(had.key, key)) return;
+      final look = had.looks[vault];
+      if (had.vaults.contains(vault) && (icon.isEmpty || color.isEmpty || look == (icon: icon, color: color))) {
+        Prefs.write(_namedPref(vault), '$fp/$icon/$color');
+        return;
+      }
+    } catch (_) {
+      return;
+    }
+    await save(key, vault: vault, icon: icon, color: color);
   }
 
   /// Take the set with [key] out (from every device signed in to the account).
