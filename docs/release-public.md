@@ -10,16 +10,20 @@ Done:
   icons-only vault bar) are on TestFlight, Play internal + alpha and GitHub releases.
 - App Store: 1.0.1 (build 1180) was rejected 2026-11-18 under 2.1 Information Needed
   (screen recording, purpose, setup, external services, regions, regulated industry).
-  **Resubmitted 2026-11-19 as 1.0.8, build 1189, Waiting for Review**, manual release, with
-  those six answers in the App Review notes and a recording on a physical iPhone.
+  Resubmitted 2026-11-19 as 1.0.8 (1189), then pulled from review the same day (owner: the
+  first public version should carry the camera and lock-screen fixes). **Submitted 2026-11-19
+  as 1.0.9, build 1192, Waiting for Review**, manual release, with those six answers in the
+  App Review notes and a recording on a physical iPhone (made with 1.0.8; the notes say what
+  1.0.9 changes).
   Free; App Privacy "Data Not Collected"; age 4+; no third-party content; review contact set.
   Availability: 173 countries, every one except France and China mainland (Apple would not
   take the submission with China mainland in: it needs a Security Assessment and an AIGC
   declaration, see below).
 - Google Play: closed test finished; production access granted 2026-11-19. **1.0.8 (1189)
-  live in production 2026-11-19, full rollout.** Countries: all 178; France (and its
-  territories) added the same day after ANSSI's acceptance, held until the app-level trader
-  status form (App content) is filled in. Two traps on the first
+  live in production 2026-11-19, full rollout; 1.0.9 (1192) sent to production the same
+  evening, in Google's review.** Countries: all 178, France (and its territories) included
+  after ANSSI's acceptance. App-level trader status: "Yes" (inherits the account's), sent
+  for review 2026-11-19; no terms-of-service URL. Two traps on the first
   run of `play-production.yml`: the service account needs "Release to production" in Users
   and permissions (it had testing tracks only → 403 "caller does not have permission"), and
   the production track needs its countries set in Play Console first (→ 403 "Release in
@@ -27,9 +31,8 @@ Done:
 - France: encryption declaration filed with ANSSI 2026-11-17 (docs/export-compliance.md).
 
 To do:
-- [ ] Apple's answer on 1.0.8 (1189).
-- [ ] Play → App content: trader status form for the app. Blocks sending any further change
-      for review (France is waiting on it).
+- [ ] Apple's answer on 1.0.9 (1192); then release it by hand.
+- [x] Play → App content: trader status form for the app (2026-11-19).
 - [ ] Both approved → step 6 (release, website `LIVE = True`).
 - [ ] France on the App Store (ANSSI accepted 2026-11-19): after Apple's answer, attestation to
       App Store Connect, `ITSAppUsesNonExemptEncryption` per docs/export-compliance.md, tick France.
