@@ -431,8 +431,11 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
       await _maybeOfferBiometric(l);
     }
     // Opened another way (Face ID, a PIN) over a password half typed: nothing is owed.
+    // The owner is the one here, so wrong passwords from before are forgotten too, as a
+    // right password does (owner 2026-11-19: Face ID opened every day, and the count of
+    // old misses still made the lock screen say "too many tries").
     _quietMiss = null;
-    await PinStore.quietTryOut(false);
+    await PinStore.resetPasswordFails();
     if (!mounted) return;
     TopSecretMode.opened(vault);
     final nav = Navigator.of(context);

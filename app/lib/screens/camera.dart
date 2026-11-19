@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import '../widgets/vault_bar.dart';
 import '../src/rust/api/vault.dart' as rust;
 import 'common.dart';
 import 'file_view.dart';
+import 'glass.dart';
 import '../widgets/take_kept.dart';
 import '../widgets/toast.dart';
 import '../theme.dart';
@@ -284,11 +286,14 @@ class _CameraScreenState extends State<CameraScreen> {
 
 /// The live preview and what it saves.
 ///
-/// Photos never touch a file in the clear: we take the next frame of the preview stream
-/// (memory), and Rust encodes the JPEG and encrypts it into the open vault.
-/// `takePicture` is not used because it writes a cache file. Video has no such path: the
-/// plugin records to a file in the app's private cache, which is encrypted into the vault
-/// and deleted as soon as recording stops (and before the vault locks).
+/// Photos are taken by the camera itself (`takePicture`), at the sensor's full size with
+/// its focus and exposure: the JPEG lands in the app's private temporary folder and is
+/// encrypted into the vault and deleted at once, as a video is (owner 2026-11-19: shots
+/// taken from the preview were soft, about a 2-megapixel frame). A Top secret vault keeps
+/// the old way, where no file is ever written in the clear: the next frame of the preview
+/// stream (memory), which Rust encodes and encrypts. Video always records to a file in
+/// the app's private cache, encrypted into the vault and deleted as soon as recording
+/// stops (and before the vault locks). Tap focuses there; two fingers zoom.
 class CameraView extends StatefulWidget {
   const CameraView({
     super.key,
@@ -303,6 +308,8 @@ class CameraView extends StatefulWidget {
   static Widget? debugPreview;
   /// For the mockup renders: a last shot to show in the corner.
   static (rust.ItemInfo, Uint8List)? debugLast;
+  /// For the mockup renders: a zoom and a focus point, as if just set.
+  static (double, Offset)? debugZoomFocus;
 
   final bool video;
   final String? tagId;
@@ -329,6 +336,12 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
   rust.ItemInfo? _last;
   Uint8List? _lastThumbnail;
   bool _recording = false;
+  double _zoom = 1, _minZoom = 1, _maxZoom = 1, _zoomAtStart = 1;
+  /// Where focus was last tapped, shown for a moment.
+  Offset? _focusAt;
+  Timer? _focusFade;
+  /// Top secret: photos come from the preview stream, never a file ([CameraView]).
+  bool get _fromStream => TopSecretMode.on;
   /// Set when recording starts (the context may be gone when it is saved on lock).
   String? _videoName;
 
@@ -350,6 +363,11 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     if (CameraView.debugPreview != null) {
       _last = CameraView.debugLast?.$1;
       _lastThumbnail = CameraView.debugLast?.$2;
+      if (CameraView.debugZoomFocus case (final z, final at)?) {
+        _zoom = z;
+        _maxZoom = 10;
+        _focusAt = at;
+      }
       return;
     }
     try {
@@ -360,13 +378,22 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       }
       final c = CameraController(
         _cameras[_camera],
-        ResolutionPreset.veryHigh,
+        // A photo the camera takes itself: its full size. The stream (Top secret) and
+        // video stay at 1080p: a full-size frame thirty times a second is too much.
+        widget.video || _fromStream ? ResolutionPreset.veryHigh : ResolutionPreset.max,
         enableAudio: widget.video,
         imageFormatGroup: Device.iOS ? ImageFormatGroup.bgra8888 : ImageFormatGroup.yuv420,
       );
       await c.initialize();
       await c.lockCaptureOrientation(DeviceOrientation.portraitUp);
-      await c.startImageStream(_onFrame);
+      if (_fromStream && !widget.video) await c.startImageStream(_onFrame);
+      try {
+        _minZoom = await c.getMinZoomLevel();
+        _maxZoom = math.min(await c.getMaxZoomLevel(), 10);
+      } catch (_) {
+        _minZoom = _maxZoom = 1;
+      }
+      _zoom = _minZoom;
       if (!mounted || vaultLock.locked) {
         await _stop(c);
         return;
@@ -418,6 +445,7 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
 
   @override
   void dispose() {
+    _focusFade?.cancel();
     final c = _controller;
     _controller = null;
     if (_recording && c != null) {
@@ -436,13 +464,15 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       _recording ? _stopVideo() : _startVideo();
       return;
     }
-    if (_saving || _controller == null) return;
+    final c = _controller;
+    if (_saving || c == null) return;
     HapticFeedback.mediumImpact();
     setState(() {
-      _wantShot = true;
+      _wantShot = _fromStream;
       _saving = true;
       _flash = true;
     });
+    if (!_fromStream) unawaited(_takePhoto(c));
     Future<void>.delayed(const Duration(milliseconds: 120), () {
       if (mounted) setState(() => _flash = false);
     });
@@ -527,7 +557,6 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     setState(() => _saving = false);
     try {
       await c.lockCaptureOrientation(DeviceOrientation.portraitUp);
-      await c.startImageStream(_onFrame);
     } catch (_) {}
   }
 
@@ -607,26 +636,7 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
       );
       final item = await rust.addPhoto(
           frame: frame, name: captureName(DateTime.now(), '.jpg'), createdMs: nowMs());
-      final tagId = widget.tagId;
-      if (tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
-      // Top secret: no thumbnail, nothing shown of the shot; it is named at once so it
-      // can be found without opening it (ADR 0005).
-      if (TopSecretMode.on) {
-        if (!mounted) return;
-        await nameNewItem(context, item);
-        if (!mounted) return;
-        widget.onChanged?.call();
-        widget.onSaved(item);
-        return;
-      }
-      final thumbnail = await rust.itemThumbnail(id: item.id);
-      if (!mounted) return;
-      setState(() {
-        _last = item;
-        _lastThumbnail = thumbnail;
-      });
-      widget.onChanged?.call();
-      widget.onSaved(item);
+      await _photoSaved(item);
     } on rust.VaultError catch (e) {
       _snack(vaultErrorText(l, e));
     } catch (e) {
@@ -634,6 +644,90 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  /// A photo by the camera itself: the JPEG it wrote is encrypted into the vault, then
+  /// deleted whatever happened (a crash in between: [clearTemp] at the next start).
+  Future<void> _takePhoto(CameraController c) async {
+    final l = AppLocalizations.of(context);
+    final name = captureName(DateTime.now(), '.jpg');
+    String? path;
+    try {
+      final shot = File((await c.takePicture()).path);
+      path = shot.path;
+      // The file takes the name, as a video's does ([_finishVideo]).
+      path = shot.renameSync('${shot.parent.path}${Platform.pathSeparator}$name').path;
+      final item = (await importFiles([XFile(path, mimeType: 'image/jpeg')], photos: true)).firstOrNull;
+      if (item == null) throw 'save-photo';
+      await _photoSaved(item);
+    } on rust.VaultError catch (e) {
+      if (!vaultLock.locked) _snack(vaultErrorText(l, e));
+    } catch (e) {
+      // Locked mid-shot: the camera was let go; nothing to say over the lock screen.
+      if (!vaultLock.locked) _snack(withCode(l, l.photoSaveFailed, e));
+    } finally {
+      if (path != null) {
+        try {
+          File(path).deleteSync();
+        } catch (_) {} // already gone with the import
+      }
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// Tag it, then show it in the corner (or, Top secret, name it at once).
+  Future<void> _photoSaved(rust.ItemInfo item) async {
+    final tagId = widget.tagId;
+    if (tagId != null) await rust.setTag(itemIds: [item.id], tagId: tagId, tagged: true);
+    // Top secret: no thumbnail, nothing shown of the shot; it is named at once so it
+    // can be found without opening it (ADR 0005).
+    if (TopSecretMode.on) {
+      if (!mounted) return;
+      await nameNewItem(context, item);
+      if (!mounted) return;
+      widget.onChanged?.call();
+      widget.onSaved(item);
+      return;
+    }
+    final thumbnail = await rust.itemThumbnail(id: item.id);
+    if (!mounted) return;
+    setState(() {
+      _last = item;
+      _lastThumbnail = thumbnail;
+    });
+    widget.onChanged?.call();
+    widget.onSaved(item);
+  }
+
+  /// Tap: focus and exposure on that spot of the preview, which is drawn to cover the
+  /// view (cropped), so the spot is measured on the whole preview.
+  void _focusOn(Offset at, Size view) {
+    final c = _controller;
+    if (c == null) return;
+    final pw = c.value.previewSize?.height ?? 1080, ph = c.value.previewSize?.width ?? 1920;
+    final s = math.max(view.width / pw, view.height / ph);
+    final point = Offset(
+      ((at.dx - (view.width - pw * s) / 2) / (pw * s)).clamp(0.0, 1.0),
+      ((at.dy - (view.height - ph * s) / 2) / (ph * s)).clamp(0.0, 1.0),
+    );
+    try {
+      if (c.value.focusPointSupported) unawaited(c.setFocusPoint(point).catchError((_) {}));
+      if (c.value.exposurePointSupported) unawaited(c.setExposurePoint(point).catchError((_) {}));
+    } catch (_) {}
+    HapticFeedback.selectionClick();
+    _focusFade?.cancel();
+    setState(() => _focusAt = at);
+    _focusFade = Timer(const Duration(milliseconds: 1100), () {
+      if (mounted) setState(() => _focusAt = null);
+    });
+  }
+
+  void _zoomTo(double z) {
+    final c = _controller;
+    final next = z.clamp(_minZoom, _maxZoom);
+    if (c == null || next == _zoom) return;
+    setState(() => _zoom = next);
+    c.setZoomLevel(next).catchError((_) {});
   }
 
   /// The UI is held in portrait. A landscape frame is the sensor's native layout and
@@ -674,16 +768,65 @@ class CameraViewState extends State<CameraView> with VaultLockAware {
                     )
                   : c == null
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : ClipRect(
-                          child: FittedBox(
-                            fit: BoxFit.cover,
-                            child: SizedBox(
-                              width: c.value.previewSize?.height ?? 1080,
-                              height: c.value.previewSize?.width ?? 1920,
-                              child: CameraPreview(c),
+                      : LayoutBuilder(
+                          builder: (context, box) => GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapUp: (d) => _focusOn(d.localPosition, box.biggest),
+                            onScaleStart: (_) => _zoomAtStart = _zoom,
+                            onScaleUpdate: (d) {
+                              if (d.pointerCount >= 2) _zoomTo(_zoomAtStart * d.scale);
+                            },
+                            child: ClipRect(
+                              child: FittedBox(
+                                fit: BoxFit.cover,
+                                child: SizedBox(
+                                  width: c.value.previewSize?.height ?? 1080,
+                                  height: c.value.previewSize?.width ?? 1920,
+                                  child: CameraPreview(c),
+                                ),
+                              ),
                             ),
                           ),
                         ),
+            ),
+          if (_focusAt case final at?)
+            Positioned(
+              key: const ValueKey('camera-focus'),
+              left: at.dx - 36,
+              top: at.dy - 36,
+              child: IgnorePointer(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white.withValues(alpha: .9), width: 1.5),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          // The zoom, once it is not the widest: tap goes back to it.
+          if (_zoom > _minZoom + .05)
+            Positioned(
+              top: 14,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: GestureDetector(
+                  key: const ValueKey('camera-zoom'),
+                  onTap: () => _zoomTo(_minZoom),
+                  child: GlassPill(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: Text(
+                        '${_zoom.toStringAsFixed(1)}×',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600,
+                            fontSize: CsType.subhead, fontFeatures: [FontFeature.tabularFigures()]),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           IgnorePointer(
             child: AnimatedOpacity(

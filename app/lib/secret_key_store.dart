@@ -261,6 +261,16 @@ class PinStore {
     await addPasswordFail();
   }
 
+  /// No vault on this phone (a fresh install, or every vault deleted): wrong tries from
+  /// before are forgotten. They live in the Keychain, which outlives the app on iOS, so a
+  /// reinstall found the old count and a new vault's first lock screen said "too many
+  /// tries" before anything was typed (owner 2026-11-19). With no vault there is nothing
+  /// to guess, so nothing is given away.
+  static Future<void> forgetTriesWithoutVaults() async {
+    await resetFails();
+    await resetPasswordFails();
+  }
+
   static Future<void> resetFails() async {
     try {
       await _storage.write(key: _fails, value: '0');

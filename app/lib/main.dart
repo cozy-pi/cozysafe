@@ -45,6 +45,10 @@ Future<void> main() async {
     await rust.purgeDueVaults(dir: libraryDir, nowMs: nowMs());
   } catch (_) {}
   final hasKey = await loadSecretKey(libraryDir);
+  try {
+    final dirs = {libraryDir, ...run_api.libraryDirs()};
+    if (!dirs.any((d) => rust.libraryHasVaults(dir: d))) await PinStore.forgetTriesWithoutVaults();
+  } catch (_) {}
   await AppLanguage.load();
   await NativeBar.probe(); // iOS 26: the system's own bottom bar
   DebugLog.sync(); // keep debug lines only if debug mode is on

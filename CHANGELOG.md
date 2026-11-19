@@ -4,6 +4,23 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
+## 1.0.9 (2026-11-19)
+
+### Changed
+- Camera: photos are taken at the camera's full resolution, with its own focus and
+  exposure (they were a 1080p frame from the preview). Top secret vaults keep the old
+  way, where no file is ever written in the clear.
+
+### Added
+- Camera: tap to focus and set exposure there; pinch to zoom, and tap the zoom badge to
+  go back to 1×.
+
+### Fixed
+- The lock screen could ask to wait for too many wrong passwords on a new vault, before
+  anything was typed: counts from an earlier install were kept by the phone. They are now
+  forgotten when there is no vault, and when the vault opens with Face ID or a
+  fingerprint.
+
 ## 1.0.8 (2026-11-19)
 
 ### Added

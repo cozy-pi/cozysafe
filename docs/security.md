@@ -390,6 +390,11 @@ person imports. A decoder is where a phone gets taken over (libwebp 2023, FORCED
   with it since 2026-11-14 (the camera writes a video there while it records, and a file
   picker puts the copy it hands over there). A file the 24 words are read from is deleted
   as soon as it is read, on phones (the picker's copy, never the person's own file).
+- **A photo from the app's camera** (1.0.9). The camera now writes its JPEG to the
+  app's private temporary folder, which is encrypted into the vault and deleted at once
+  (a 1080p frame from the preview, kept in memory, was too soft). It is the same path a
+  video already took, and the sweep above covers a crash in between. A Top secret vault
+  still takes the frame from memory, so nothing of it is ever written in the clear.
 - **A recording or video that could not be encrypted** (no space left, most often;
   0.3.1). A voice recording and a video are plain files in that folder while they are
   made, encrypted and deleted when they stop. When encrypting failed, the file was

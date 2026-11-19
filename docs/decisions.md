@@ -6,6 +6,18 @@ depends on memory. Details live in the linked docs; this page is the index.
 How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
 [cryptography.md](cryptography.md).
 
+## 2026-11-19 — Full-size photos, and no leftover "too many tries"
+
+- The app's camera takes photos itself (`takePicture`, full sensor size), with tap to
+  focus and pinch to zoom. Owner: shots were soft, there was no focus and no zoom. The
+  JPEG is a plain file in the app's private temporary folder for a moment, as a video
+  always was. A Top secret vault keeps the in-memory frame (no file ever).
+- Wrong-password counts live in the Keychain, which outlives the app on iOS. Owner made
+  a first vault after a reinstall and, on locking, was told to wait for too many wrong
+  tries before typing anything. Now the counts are forgotten when the phone has no vault
+  (nothing to guess) and whenever the vault opens with Face ID or a fingerprint (the
+  owner is there), as a right password already did.
+
 ## 2026-11-19 — One vault code, and one page on how a vault opens again
 
 The cloud copy of the 24 words said nothing of what it kept nor how to find it later, and
