@@ -32,6 +32,13 @@ de cryptologie", as a private person). ANSSI has one month from a complete file;
 after that means supply in France is allowed. Then: upload the receipt in App Store
 Connect (App Encryption Documentation), follow steps 3 below, and tick France.
 
+**Accepted 2026-11-19** (file no. 35484931, "Attestation de déclaration" dated 17 Nov 2026).
+The attestation covers later versions as long as the cryptography stays the same; it has no
+end date (the "expires 17 Nov 2027" on demarche.numerique.gouv.fr is the file's keeping
+period). Google Play: France ticked in production 2026-11-19. App Store: still to do, after
+Apple's answer on 1.0.8 (upload the attestation, answer "available in France: yes", then
+the code from Apple in Info.plist, then tick France).
+
 ## United States (BIS)
 
 Mass-market encryption software (likely ECCN 5D992.c, authorization MMKT, License

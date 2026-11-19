@@ -8,24 +8,32 @@ is sent to a store without the owner saying so on the day. Listing text: `store/
 Done:
 - 1.0.0 (build 1178), 1.0.1 (1180: Android save-to-file and picker fixes) and 1.0.2 (1181:
   icons-only vault bar) are on TestFlight, Play internal + alpha and GitHub releases.
-- App Store: **1.0.1, build 1180, submitted 2026-11-17, Waiting for Review**, manual release.
+- App Store: 1.0.1 (build 1180) was rejected 2026-11-18 under 2.1 Information Needed
+  (screen recording, purpose, setup, external services, regions, regulated industry).
+  **Resubmitted 2026-11-19 as 1.0.8, build 1189, Waiting for Review**, manual release, with
+  those six answers in the App Review notes and a recording on a physical iPhone.
   Free; App Privacy "Data Not Collected"; age 4+; no third-party content; review contact set.
-  Availability: 174 countries, every one except France (China mainland left in on purpose
-  to see what Apple does: it needs a Security Assessment and an AIGC declaration, see below).
-- Google Play: closed test finished; production access applied for 2026-11-17 (Google
-  answers by email, usually within 7 days).
+  Availability: 173 countries, every one except France and China mainland (Apple would not
+  take the submission with China mainland in: it needs a Security Assessment and an AIGC
+  declaration, see below).
+- Google Play: closed test finished; production access granted 2026-11-19. **1.0.8 (1189)
+  live in production 2026-11-19, full rollout.** Countries: all 178; France (and its
+  territories) added the same day after ANSSI's acceptance, held until the app-level trader
+  status form (App content) is filled in. Two traps on the first
+  run of `play-production.yml`: the service account needs "Release to production" in Users
+  and permissions (it had testing tracks only → 403 "caller does not have permission"), and
+  the production track needs its countries set in Play Console first (→ 403 "Release in
+  track targeting no countries").
 - France: encryption declaration filed with ANSSI 2026-11-17 (docs/export-compliance.md).
 
 To do:
-- [ ] Apple's answer. Rejected over China mainland → untick it in Pricing and Availability
-      and submit again. Approved → send 1.0.2 (or later) as the first update.
-- [ ] Google grants production access → owner says go → `play-production.yml` with the
-      newest build (1181 today).
+- [ ] Apple's answer on 1.0.8 (1189).
+- [ ] Play → App content: trader status form for the app. Blocks sending any further change
+      for review (France is waiting on it).
 - [ ] Both approved → step 6 (release, website `LIVE = True`).
-- [ ] ANSSI answer, or one month of silence (about 2026-12-17) → France: receipt to App
-      Store Connect, `ITSAppUsesNonExemptEncryption` per docs/export-compliance.md, tick France.
-- [ ] China mainland for good: Security Assessment + AIGC declaration (App Compliance in
-      App Store Connect), or leave it out.
+- [ ] France on the App Store (ANSSI accepted 2026-11-19): after Apple's answer, attestation to
+      App Store Connect, `ITSAppUsesNonExemptEncryption` per docs/export-compliance.md, tick France.
+- [x] China mainland left out for good (owner 2026-11-19): no Security Assessment / AIGC filing.
 - [ ] EU trader status (App Store Connect → Business; Play → App content): not checked yet.
 - [ ] `cozypi.com/.well-known/assetlinks.json` is 404 (Android password managers do not
       link the app to the site).
