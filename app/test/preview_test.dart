@@ -488,6 +488,7 @@ void _screen(String name, String caption, Widget Function() home,
       debugCamera = false;
       CameraView.debugPreview = null;
       CameraView.debugLast = null;
+      CameraView.debugZoomFocus = null;
       QuickLook.debugVideo = null;
       NewVaultScreen.debugWords = null;
       NewVaultScreen.debugSkipMode = false;
@@ -778,6 +779,13 @@ void main() {
   }
   _screen('camera', 'Chụp / Quay → máy ảnh, mở ở Ảnh', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
+  _screen('camera-zoom', 'Máy ảnh · chạm để lấy nét, chụm hai ngón để zoom', () => camera(video: false),
+      change: 'MỚI: chạm vào khung là lấy nét + đo sáng ở đó (ô vuông hiện thoáng qua); chụm hai ngón để zoom, nút 2.0× ở trên, chạm vào để về 1×. Ảnh giờ chụp bằng chính camera, đủ độ phân giải cảm biến (két Tuyệt mật giữ cách cũ, không ghi tệp)',
+      marks: [() => find.byKey(const ValueKey('camera-zoom')), () => find.byKey(const ValueKey('camera-focus'))],
+      setup: () {
+    still();
+    CameraView.debugZoomFocus = (2.0, const Offset(150, 260));
+  });
   void drive({bool failed = false, bool moving = false, bool pending = false, SyncWait? waiting}) {
     Prefs.write('drive-account', 'ban.do@gmail.com');
     Prefs.write(AutoSync.pref, '1');
@@ -1855,8 +1863,6 @@ void main() {
             (DateTime.fromMillisecondsSinceEpoch(_now - 2 * 86400000), 'vault', 'io-timed-out'),
           ]);
   _screen('settings-vault-code', 'Cài đặt · nhóm khoá: dòng Mở lại két này', () => settings(vault),
-      change: 'MỚI: dòng "Mở lại két này" thay cho dòng "Mã két" ở cuối nhóm (mã két chuyển vào trang mới, có giải thích)',
-      marks: [() => find.byKey(const ValueKey('reopen-row'))],
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('reopen-row')), 200, scrollable: find.byType(Scrollable).first);
     await Scrollable.ensureVisible(t.element(find.byKey(const ValueKey('reopen-row'))), alignment: .5);
@@ -1878,20 +1884,14 @@ void main() {
     ReopenVaultScreen.debugFacts = (set: 'A1B2', vaults: 2, savedAt: DateTime(2026, 11, 18));
   }
   _screen('reopen-vault', 'Cài đặt → Mở lại két này (bản sao iCloud đang bật)', reopen,
-      change: 'MỚI: một trang gom đủ: bộ 24 từ A1B2 (2 két dùng chung), bản sao iCloud có từ ngày nào và KHÔNG hiện trong app Mật khẩu, mật khẩu két nằm ở app Mật khẩu → cozypi.com → 7F3A-9K2Q, mã két và các bước trên máy mới',
-      marks: [() => find.byKey(const ValueKey('reopen-cloud')), () => find.byKey(const ValueKey('reopen-cloud-note'))],
       setup: reopenFacts);
   _screen('reopen-vault-steps', 'Cài đặt → Mở lại két này · cuộn xuống: mã két và các bước trên máy mới', reopen,
-      change: 'MỚI: 3 bước trên máy mới; nói rõ nội dung két lấy từ Google Drive / file sao lưu / máy khác, 24 từ + mật khẩu chỉ để mở',
-      marks: [() => find.byKey(const ValueKey('reopen-step-0'))],
       setup: reopenFacts,
       act: (t) async {
     await t.scrollUntilVisible(find.byKey(const ValueKey('reopen-step-2')), 200, scrollable: find.byType(Scrollable).first);
     await t.pumpAndSettle();
   });
   _screen('reopen-vault-off', 'Cài đặt → Mở lại két này (không có bản sao trên mây)', () => reopen(cloud: false),
-      change: 'MỚI: khi không giữ bản sao: dòng ghi "Không", bước 2 chỉ còn "Nhập 24 từ"',
-      marks: [() => find.byKey(const ValueKey('reopen-cloud'))],
       setup: reopenFacts);
   _screen('settings-security', 'Cài đặt · Bảo mật (iPhone)', () => settings(vault),
       act: (t) async {
@@ -2337,8 +2337,6 @@ void main() {
     await t.pumpAndSettle();
   });
   _screen('vault-manager-open', 'Quản lý két · chạm két đang mở', () => VaultManagerScreen(libraryDir: '', onNewVault: () async {}, onReopen: () async {}),
-      change: 'SỬA: dòng "Mã két" hiện đúng mã két 7F3A-9K2Q (trước là 6 ký tự đầu của id nội bộ); MỚI: nút "Mở lại két này" dẫn tới trang cùng tên',
-      marks: [() => find.text('7F3A-9K2Q'), () => find.byKey(const ValueKey('vault-details-reopen'))],
       setup: () {
     Prefs.write('vault-code.e0a966aed6bec8151ebb59139e5aa773', '7F3A-9K2Q');
     VaultManagerScreen.debugSlots = slots();
@@ -2373,8 +2371,6 @@ void main() {
       setup: () => TestLogin.debugShown = true);
   _screen('restore-keys', 'Khôi phục · 1. Nhập 24 từ và mật khẩu', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'));
   _screen('restore-keys-pick', 'Khôi phục · bấm iCloud, tài khoản có 3 bộ 24 từ: chọn bộ nào (ghi két mỗi bộ mở)', () => const RestoreKeysScreen(libraryDir: '', filePath: '', fileName: 'Cozy Safe 2026-10-31.cozysafe'),
-      change: 'MỚI: cạnh mỗi mã két có biểu tượng và màu của két (két không có tên); bản sao cũ chưa có thì chỉ hiện mã',
-      marks: [() => find.byKey(const ValueKey('cloud-set-1-K8M2-4TXQ'))],
       setup: () => KeyBackup.debugStore = {
             'secret-key.a1': jsonEncode({'v': 1, 'key': base64Encode(List.filled(32, 161)), 'vaults': ['7F3A-9K2Q'], 'looks': {'7F3A-9K2Q': 'home/green'}}),
             'secret-key.b2': jsonEncode({'v': 1, 'key': base64Encode(List.filled(32, 178)), 'vaults': ['K8M2-4TXQ', 'P3RA-77ZD'], 'looks': {'K8M2-4TXQ': 'love/red', 'P3RA-77ZD': 'work/night'}}),
@@ -2434,8 +2430,6 @@ void main() {
   // A vault in a few taps (owner 2026-11-05): the words with their cloud copy, then the
   // password last, which makes the vault.
   _screen('new-vault-words', 'Tạo két · 24 từ, bản sao iCloud Keychain bật sẵn', () => const NewVaultScreen(libraryDir: '', first: true),
-      change: 'SỬA: câu dẫn nói rõ khi nào cần 24 từ: đổi máy hoặc cài lại app, cùng mật khẩu két',
-      marks: [() => find.textContaining('cài lại app')],
       setup: useWords);
   _screen('new-vault-words-google', 'Tạo két · Android: bản sao với Google', () => const NewVaultScreen(libraryDir: '', first: true),
       setup: () {
@@ -2699,7 +2693,6 @@ void main() {
   _screen('biometric-not-on', 'Vừa tạo két · Face ID bị huỷ hoặc lỗi: két vẫn mở, có lời báo', home, section: 'home',
       act: (t) => over(t, VaultHomeScreen, (c) => showToast(c, AppLocalizations.of(c).biometricNotOn, icon: Icons.info_outline_rounded)));
   _screen('new-vault-cloud-saved', 'Vừa tạo két · bản sao 24 từ đã vào iCloud Keychain: báo một lần', home, section: 'home',
-      change: 'MỚI: tạo két xong báo một lần bộ 24 từ nào, của két nào, giữ ở đâu, xem lại ở đâu',
       marks: [_toast],
       act: (t) => over(t, VaultHomeScreen, (c) {
             final l = AppLocalizations.of(c);

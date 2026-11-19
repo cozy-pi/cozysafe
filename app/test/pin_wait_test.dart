@@ -69,4 +69,19 @@ void main() {
     expect(await PinStore.fails(), 0);
     expect(await left(), isNull);
   });
+
+  test('with no vault on the phone, old wrong tries are forgotten (reinstall)', () async {
+    for (var i = 0; i < 12; i++) {
+      await PinStore.addPasswordFail();
+    }
+    await fail(6);
+    expect(await PinStore.passwordWaitUntil(), isNotNull);
+    expect(await left(), isNotNull);
+    await PinStore.forgetTriesWithoutVaults();
+    expect(await PinStore.passwordWaitUntil(), isNull);
+    expect(await left(), isNull);
+    expect(await PinStore.fails(), 0);
+    // The count starts again from nothing: the next miss is free.
+    expect(await PinStore.addPasswordFail(), Duration.zero);
+  });
 }

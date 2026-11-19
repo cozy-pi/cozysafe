@@ -139,14 +139,17 @@ One "Add" button (the + inside a vault) opens every source:
 
 ### In-app camera (mobile)
 
-- Photos go straight into the open vault: the frame is captured to memory
-  and encrypted while it streams to storage. It never reaches the system
-  gallery, a shared folder or a plaintext temporary file. (Flutter's
-  `camera` plugin writes `takePicture` output to a cache file, so we never call
-  it: the shot is the next frame of the preview stream, which stays in memory,
-  and `core/cs-photo` encodes it to JPEG in Rust before it is encrypted. Frames
-  are 1080p (`ResolutionPreset.veryHigh`); full sensor resolution needs our own
-  native capture layer later.)
+- Photos go straight into the open vault. They never reach the system gallery
+  or a shared folder. Since 1.0.9 the camera takes the photo itself
+  (`takePicture`, `ResolutionPreset.max`): full sensor size, its own focus and
+  exposure. The JPEG it writes sits in the app's private temporary folder only
+  until it is encrypted, then it is deleted (a crash in between: swept at the
+  next start), as a video always was. Before, the shot was the next 1080p frame
+  of the preview stream, which owners found soft (2026-11-19).
+- A Top secret vault keeps that old way: no plaintext temporary file at all.
+  The shot is the next frame of the preview stream (1080p, memory only), and
+  `core/cs-photo` encodes it to JPEG in Rust before it is encrypted.
+- Tap the viewfinder to focus and meter there; pinch to zoom (up to 10×).
 - Only the camera permission is requested; no photo-library permission.
 - Location is stripped from photos by default (EXIF GPS); a per-vault setting
   keeps it.
