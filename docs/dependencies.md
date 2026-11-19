@@ -82,6 +82,9 @@ Last review: **2026-10-28**.
 | updated | Rust windows-sys | 0.52.0, 0.61.2 → 0.52.0 |
 | owners changed | Rust bitflags | KodrAus, rust-lang-owner → KodrAus |
 | owners changed | Rust pkg-config | joshtriplett, rust-lang-owner, sdroege → rust-lang-owner |
+| owners changed | Rust regex | BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner → rust-lang-owner |
+| owners changed | Rust regex-automata | BurntSushi, rust-lang-owner → rust-lang-owner |
+| owners changed | Rust regex-syntax | BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner → rust-lang-owner |
 
 ## Tier 1: Reads data from outside
 
@@ -342,9 +345,9 @@ Rust and Dart that ships in the app.
 | Rust [qrcode](https://crates.io/crates/qrcode/0.14.1) | 0.14.1 | 2024-07-05 | direct | kennytm |  |
 | Rust [rand_core](https://crates.io/crates/rand_core/0.10.1) | 0.10.1 | 2026-04-13 | ml-kem | dhardy, github:rust-random:maintainers | cackle: unsafe |
 | Rust [rand_core](https://crates.io/crates/rand_core/0.6.4) | 0.6.4 | 2022-09-15 | crypto-common | dhardy, github:rust-random:maintainers | cackle: unsafe |
-| Rust [regex](https://crates.io/crates/regex/1.13.1) | 1.13.1 | 2026-07-15 | env_filter | BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner | cackle: unsafe |
-| Rust [regex-automata](https://crates.io/crates/regex-automata/0.4.18) | 0.4.18 | 2026-08-04 | regex | BurntSushi, rust-lang-owner | cackle: unsafe |
-| Rust [regex-syntax](https://crates.io/crates/regex-syntax/0.8.11) | 0.8.11 | 2026-06-09 | regex | BurntSushi, github:rust-lang-nursery:regex-owners, rust-lang-owner |  |
+| Rust [regex](https://crates.io/crates/regex/1.13.1) | 1.13.1 | 2026-07-15 | env_filter | rust-lang-owner | cackle: unsafe |
+| Rust [regex-automata](https://crates.io/crates/regex-automata/0.4.18) | 0.4.18 | 2026-08-04 | regex | rust-lang-owner | cackle: unsafe |
+| Rust [regex-syntax](https://crates.io/crates/regex-syntax/0.8.11) | 0.8.11 | 2026-06-09 | regex | rust-lang-owner |  |
 | Rust [rusqlite](https://crates.io/crates/rusqlite/0.41.0) | 0.41.0 | 2026-10-24 | direct | gwenn, thomcc | cackle: unsafe, fs |
 | Rust [rustc-demangle](https://crates.io/crates/rustc-demangle/0.1.28) | 0.1.28 | 2026-07-08 | backtrace | rust-lang-owner | cackle: unsafe |
 | Rust [rustls-pki-types](https://crates.io/crates/rustls-pki-types/1.15.1) | 1.15.1 | 2026-07-23 | rustls | djc, github:rustls:publishers | cackle: unsafe |

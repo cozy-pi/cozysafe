@@ -3777,17 +3777,12 @@
    "jackpot51"
   ],
   "regex": [
-   "BurntSushi",
-   "github:rust-lang-nursery:regex-owners",
    "rust-lang-owner"
   ],
   "regex-automata": [
-   "BurntSushi",
    "rust-lang-owner"
   ],
   "regex-syntax": [
-   "BurntSushi",
-   "github:rust-lang-nursery:regex-owners",
    "rust-lang-owner"
   ],
   "ring": [
