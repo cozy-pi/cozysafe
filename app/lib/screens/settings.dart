@@ -13,6 +13,7 @@ import '../debug_log.dart';
 import '../biometric.dart';
 import '../key_backup.dart';
 import '../l10n/app_localizations.dart';
+import 'reopen_vault.dart';
 import '../appearance.dart';
 import '../language.dart';
 import '../links.dart';
@@ -369,6 +370,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ));
   }
 
+  /// What opens this vault again on a new phone (from its row here and from its card in
+  /// Vaults on this device).
+  Future<void> _openReopen() {
+    final l = AppLocalizations.of(context);
+    final vault = widget.vault();
+    return pushPage<void>(context,
+        title: l.reopenTitle,
+        builder: (_) => ReopenVaultScreen(
+              vault: vault,
+              mainLibrary: widget.libraryDir,
+              cloudOn: _keyBackup,
+              onShowWords: vault.hasPassword ? widget.onShowKit : null,
+              onPassword: () => _then(widget.onPassword),
+            ));
+  }
+
   Future<void> _openVaults() async {
     await Navigator.of(context).push<void>(MaterialPageRoute(
       builder: (_) => Readable(
@@ -376,6 +393,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           libraryDir: widget.libraryDir,
           onDeleteOpen: () => _guarded(_deleteVault),
           onNewVault: widget.onNewVault,
+          onReopen: _openReopen,
         ),
       ),
     ));
@@ -402,7 +420,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (yes != true || !mounted) return;
     // The open vault's set: the device's, or the vault's own (ADR 0008, one copy per set).
     final key = await SecretKeyStore.readOpen();
-    final ok = key != null && await KeyBackup.save(key, vault: widget.vault().code);
+    final open = widget.vault();
+    final ok = key != null && await KeyBackup.save(key, vault: open.code, icon: open.icon, color: open.color);
     if (!mounted) return;
     // Block Store keeps nothing without a screen lock (end to end encryption) or Google.
     // An iPhone signed out of iCloud, or with iCloud Keychain off, keeps nothing either:
@@ -982,20 +1001,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
-            // The vault's code (ADR 0008): the name of its password and of its words in
-            // the cloud; never changes. Tap to copy.
-            if (vault.code.isNotEmpty)
-              SettingsRow(
-                key: const ValueKey('vault-code-row'),
-                icon: Icons.tag_rounded,
-                color: SettingsHue.indigo,
-                title: l.vaultCode,
-                value: vault.code,
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: vault.code));
-                  showToast(context, l.vaultCodeCopied, icon: Icons.copy_rounded);
-                },
-              ),
+            // What opens this vault on a new phone, in one page: its set of words and the
+            // cloud copy, where its password is kept, its code (ADR 0008), the steps (owner
+            // 2026-11-18: the code alone at the end of this group explained nothing).
+            SettingsRow(
+              key: const ValueKey('reopen-row'),
+              icon: Icons.settings_backup_restore_rounded,
+              color: SettingsHue.indigo,
+              title: l.reopenTitle,
+              onTap: _openReopen,
+            ),
           ]),
           // 3. When it locks; what shows on screen on a page of its own.
           if (page == _Page.main) SettingsGroup(boxKey: _here(_shieldGroupKey, page), rows: [

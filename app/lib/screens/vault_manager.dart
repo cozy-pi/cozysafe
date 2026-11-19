@@ -6,6 +6,7 @@ import '../biometric.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../sync/drive.dart' show driveAccount;
 import '../test_login.dart';
+import '../top_secret_mode.dart' show VaultCode;
 import '../theme.dart';
 import '../widgets/countdown.dart';
 import '../widgets/identity.dart';
@@ -27,12 +28,14 @@ import 'top_secret_page.dart' show TopSecretMark;
 /// confirms, and opening it with its password in the meantime keeps it. Only on this
 /// device; Google Drive is a choice on the delete page.
 class VaultManagerScreen extends StatefulWidget {
-  const VaultManagerScreen({super.key, required this.libraryDir, this.onDeleteOpen, this.onNewVault});
+  const VaultManagerScreen({super.key, required this.libraryDir, this.onDeleteOpen, this.onNewVault, this.onReopen});
   final String libraryDir;
   /// Delete the open vault (Settings' own flow, which locks and leaves it).
   final Future<void> Function()? onDeleteOpen;
   /// Make another vault (the vault page's flow: the owner first, this vault locks).
   final Future<void> Function()? onNewVault;
+  /// What opens the open vault again on a new phone (Settings' page), from its card.
+  final Future<void> Function()? onReopen;
 
   /// For the mockup renders: these vaults instead of the library's, the open vault's item
   /// count and its Google Drive account.
@@ -84,6 +87,7 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
     final l = AppLocalizations.of(context);
     final open = s.isOpen ? _open : null;
     final test = s.id == _testId;
+    var reopen = false;
     final delete = await showCard<bool>(context, title: _title(l, s), builder: (context) {
       final c = CsColors.of(context);
       return Padding(
@@ -100,6 +104,20 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
             const SizedBox(height: 10),
           ],
           VaultFacts(slot: s, open: open, mainLibrary: widget.libraryDir),
+          // The open vault's code and words lead on to how it opens again (owner 2026-11-19).
+          if (open != null && widget.onReopen != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const ValueKey('vault-details-reopen'),
+                onPressed: () {
+                  reopen = true;
+                  Navigator.of(context).pop();
+                },
+                icon: const Icon(Icons.settings_backup_restore_rounded, size: 20),
+                label: Text(l.reopenTitle),
+              ),
+            ),
           const SizedBox(height: 18),
           // One row (owner 2026-11-02): Close, then Delete, red, on the far right.
           Row(children: [
@@ -123,6 +141,10 @@ class _VaultManagerScreenState extends State<VaultManagerScreen> {
         ]),
       );
     });
+    if (reopen && mounted) {
+      await widget.onReopen?.call();
+      return;
+    }
     if (delete != true || !mounted) return;
     if (test) return _deleteTest(s);
     await _menu(s);
@@ -366,7 +388,10 @@ class _VaultFactsState extends State<VaultFacts> {
         (l.vaultInfoDeleteAsked, when(at.toInt() - VaultManagerScreen.forgotWait.inMilliseconds), true),
         (l.vaultInfoDeletes, '${when(at.toInt())}\n${left(at.toInt())}', true),
       ],
-      (l.vaultInfoId, '${s.id.substring(0, 6)}…', false),
+      // The vault's code (ADR 0008), the one Settings, the password manager and the cloud
+      // copy of the words use; known once the vault has opened here. It used to show the
+      // first digits of the internal id under the same name (owner 2026-11-18).
+      if (VaultCode.of(s.id) case final code?) (l.vaultCode, code, false),
     ];
     return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (open == null) ...[

@@ -6,6 +6,22 @@ depends on memory. Details live in the linked docs; this page is the index.
 How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
 [cryptography.md](cryptography.md).
 
+## 2026-11-19 — One vault code, and one page on how a vault opens again
+
+The cloud copy of the 24 words said nothing of what it kept nor how to find it later, and
+"Vault code" meant two things (the code of ADR 0008 in Settings, the start of an internal
+id in Vaults on this device).
+- "Vault code" is only ever the ADR 0008 code (`7F3A-9K2Q`), the name the password
+  manager and the cloud copy use. The internal id is not shown.
+- Settings → "Open this vault again" (also from the open vault's card in Vaults on this
+  device) gathers the set of 24 words, the cloud copy and its date, where the password is
+  kept, the code, and the steps on a new phone. Read only; the switches stay in Settings.
+- Making a vault says once, after the cloud copy is kept, which set for which vault and
+  where to see it again.
+- Vaults have no name, so the cloud copy keeps each vault's icon and colour beside its
+  code (`looks`, optional, older apps still read the copy); a vault opening fills in a
+  copy kept before. Top secret vaults still never reach the cloud.
+
 ## 2026-11-15 — Set up a new device: the old device checks the code, and asks for the owner
 
 A security finding: the old device showed the 8-digit code and believed the new device's
