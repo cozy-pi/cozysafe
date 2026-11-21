@@ -128,6 +128,9 @@ I = {
     'arrow': '<path d="M5 12h14M13 6l6 6-6 6"/>',
 }
 
+# The Google Play mark in one colour (the store link's button); filled, unlike the line icons above.
+PLAY_MARK = ('<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.450.195a1.466 1.466 0 0 0-.946-.179l11.040 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.540-3.230-3.210z"/></svg>')
+
 
 def ic(name, size=24, sw=2):
     return (f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="{sw}" '
@@ -188,8 +191,8 @@ def page(lang, texts, css):
     def card(icon, name, f, key):
         if (LIVE or PLAY_LIVE) and key == 'andr':  # Google Play first, the signed APK as the second way
             return (f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t["andr_store"]}</p>'
-                    f'<a class="get" href="{GOOGLE_PLAY}">{ic("download", 18)}Google Play</a>'
-                    f'<small><a href="{BASE}{f}" title="{f}">{t["apk"]}</a></small></div>')
+                    f'<a class="get" href="{GOOGLE_PLAY}">{PLAY_MARK}Google Play</a>'
+                    f'<small><a class="apk" href="{BASE}{f}" title="{f}">{ic("download", 14)}{t["apk"]}</a></small></div>')
         return (f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t[key]}</p>'
                 f'<a class="get" href="{BASE}{f}">{ic("download", 18)}{t["get"]}</a><small title="{f}">{f}</small></div>')
     # iPhone, Android, then the computers (owner 2026-11-17).
