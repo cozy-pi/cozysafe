@@ -55,7 +55,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-
 .doc .lang { margin-left: auto; }
 h1, h2, h3 { hyphens: auto; overflow-wrap: break-word; }
 
-.hero-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 48px; align-items: center; padding: 48px 0 40px; }
+.hero-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 48px; align-items: center; padding: 48px 0 24px; }
 .hero h1 { margin: 0 0 18px; font-size: clamp(36px, 5.6vw, 58px); line-height: 1.06; letter-spacing: -.03em; font-weight: 750; }
 .lead { margin: 0 0 30px; font-size: 19px; color: rgba(255,255,255,.82); max-width: 36ch; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -128,7 +128,7 @@ h3.sub { margin: 72px 0 24px; font-size: 22px; }
   h3.sub { margin-top: 48px; }
 }
 
-section.block { padding: 88px 0 0; }
+section.block { padding: 88px 0 0; } section#tour { padding-top: 40px; }
 h2 { margin: 0 0 12px; font-size: clamp(28px, 3.6vw, 38px); line-height: 1.15; letter-spacing: -.02em; }
 .section-lead { margin: 0 0 36px; color: var(--muted); max-width: 54ch; font-size: 18px; }
 .note { margin: 0; padding: 14px 18px; border-radius: 14px; background: var(--warn-bg); color: var(--warn-ink); font-size: 15px; }
