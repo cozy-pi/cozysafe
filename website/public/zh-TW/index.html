@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cozy Safe：開放原始碼的加密保險箱</title>
-<meta name="description" content="Cozy Safe 在你自己的裝置上加密保存筆記、照片、影片、語音備忘錄、檔案、密碼和兩步驟驗證碼。不需要帳號，沒有伺服器。免費且開放原始碼。">
+<meta name="description" content="Cozy Safe 在你自己的裝置上加密保存筆記、照片、影片、語音備忘錄、檔案、密碼和兩步驟驗證碼。不需要帳號，也沒有 Cozy Pi 的伺服器。免費且開放原始碼。">
 <meta name="theme-color" content="#000000">
 <meta property="og:title" content="Cozy Safe：開放原始碼的加密保險箱">
-<meta property="og:description" content="Cozy Safe 在你自己的裝置上加密保存筆記、照片、影片、語音備忘錄、檔案、密碼和兩步驟驗證碼。不需要帳號，沒有伺服器。免費且開放原始碼。">
+<meta property="og:description" content="Cozy Safe 在你自己的裝置上加密保存筆記、照片、影片、語音備忘錄、檔案、密碼和兩步驟驗證碼。不需要帳號，也沒有 Cozy Pi 的伺服器。免費且開放原始碼。">
 <meta property="og:url" content="https://safe.cozypi.com/zh-TW/">
 <meta property="og:image" content="https://safe.cozypi.com/icon-512.png">
 <meta property="og:locale" content="zh_TW">
@@ -43,8 +43,8 @@
     </div>
     <div class="hero-grid">
       <div>
-        <h1>守護你重要資料的安全保險箱。</h1>
-        <p class="lead">筆記、照片、證件、密碼和兩步驟驗證碼，直接在你的裝置上加密。沒有你的密碼，任何人都打不開，包括我們。</p>
+        <h1>存放檔案、筆記和密碼的加密保險箱。</h1>
+        <p class="lead">筆記、照片、證件、密碼和兩步驟驗證碼，在你的裝置上加密。沒有帳號，也沒有伺服器：Cozy Pi 不保存你的資料副本，也不持有金鑰。</p>
         <div class="cta">
           <a class="btn btn-gold" id="primary" href="#download"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/></svg><span>下載</span></a>
           <a class="btn btn-ghost" href="https://github.com/cozy-pi/cozysafe"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg>查看原始碼</a>
@@ -62,29 +62,29 @@
 </header>
 <main class="wrap">
   <section class="block" id="tour" aria-labelledby="h-see">
-    <h2 id="h-see">一個保險箱，收納所有內容</h2>
+    <h2 id="h-see">保險箱裡可以存什麼</h2>
     <p class="section-lead">筆記、照片、影片、語音備忘錄以及任何檔案。以下是 App 的實際畫面，內容為範例。</p>
-    <div class="shots"><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-lock-en-dark-1x.webp" srcset="/img/s/iphone-lock-en-dark-1x.webp 1x, /img/s/iphone-lock-en-dark-2x.webp 2x" width="240" height="519" alt="用 Face ID、指紋或密碼開啟。鎖定畫面不會透露任何內容。" loading="lazy" decoding="async"></div><figcaption><strong>用 Face ID、指紋或密碼開啟。</strong>鎖定畫面不會透露任何內容。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-library-en-dark-1x.webp" srcset="/img/s/iphone-library-en-dark-1x.webp 1x, /img/s/iphone-library-en-dark-2x.webp 2x" width="240" height="519" alt="照片和影片。用 App 內建的相機拍攝，絕不會進入手機的相簿。" loading="lazy" decoding="async"></div><figcaption><strong>照片和影片。</strong>用 App 內建的相機拍攝，絕不會進入手機的相簿。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-notes-en-dark-1x.webp" srcset="/img/s/iphone-notes-en-dark-1x.webp 1x, /img/s/iphone-notes-en-dark-2x.webp 2x" width="240" height="519" alt="筆記。列表和搜尋只顯示標題，旁人看不到內容。" loading="lazy" decoding="async"></div><figcaption><strong>筆記。</strong>列表和搜尋只顯示標題，旁人看不到內容。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-voice-en-dark-1x.webp" srcset="/img/s/iphone-voice-en-dark-1x.webp 1x, /img/s/iphone-voice-en-dark-2x.webp 2x" width="240" height="519" alt="語音備忘錄，停止錄音的那一刻就完成加密。" loading="lazy" decoding="async"></div><figcaption><strong>語音備忘錄，</strong>停止錄音的那一刻就完成加密。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-files-en-dark-1x.webp" srcset="/img/s/iphone-files-en-dark-1x.webp 1x, /img/s/iphone-files-en-dark-2x.webp 2x" width="240" height="519" alt="檔案。PDF、掃描文件和任何其他檔案，都加密存放在同一個保險箱裡。" loading="lazy" decoding="async"></div><figcaption><strong>檔案。</strong>PDF、掃描文件和任何其他檔案，都加密存放在同一個保險箱裡。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-settings-en-dark-1x.webp" srcset="/img/s/iphone-settings-en-dark-1x.webp 1x, /img/s/iphone-settings-en-dark-2x.webp 2x" width="240" height="519" alt="所有安全性設定都要先通過 Face ID 驗證。儲存空間用量一目了然。" loading="lazy" decoding="async"></div><figcaption><strong>所有安全性設定都要先通過 Face ID 驗證。</strong>儲存空間用量一目了然。</figcaption></figure></div>
+    <div class="shots"><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-lock-en-dark-1x.webp" srcset="/img/s/iphone-lock-en-dark-1x.webp 1x, /img/s/iphone-lock-en-dark-2x.webp 2x" width="240" height="519" alt="用 Face ID、指紋或密碼開啟。鎖定畫面不會透露任何內容。" loading="lazy" decoding="async"></div><figcaption><strong>用 Face ID、指紋或密碼開啟。</strong>鎖定畫面不會透露任何內容。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-library-en-dark-1x.webp" srcset="/img/s/iphone-library-en-dark-1x.webp 1x, /img/s/iphone-library-en-dark-2x.webp 2x" width="240" height="519" alt="照片和影片。用 App 的相機拍攝的內容不會儲存到手機的相簿。" loading="lazy" decoding="async"></div><figcaption><strong>照片和影片。</strong>用 App 的相機拍攝的內容不會儲存到手機的相簿。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-notes-en-dark-1x.webp" srcset="/img/s/iphone-notes-en-dark-1x.webp 1x, /img/s/iphone-notes-en-dark-2x.webp 2x" width="240" height="519" alt="筆記。預設情況下，列表和搜尋只顯示標題，打開筆記後才顯示內文。" loading="lazy" decoding="async"></div><figcaption><strong>筆記。</strong>預設情況下，列表和搜尋只顯示標題，打開筆記後才顯示內文。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-voice-en-dark-1x.webp" srcset="/img/s/iphone-voice-en-dark-1x.webp 1x, /img/s/iphone-voice-en-dark-2x.webp 2x" width="240" height="519" alt="語音備忘錄，停止錄音時即加密。" loading="lazy" decoding="async"></div><figcaption><strong>語音備忘錄，</strong>停止錄音時即加密。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-files-en-dark-1x.webp" srcset="/img/s/iphone-files-en-dark-1x.webp 1x, /img/s/iphone-files-en-dark-2x.webp 2x" width="240" height="519" alt="檔案。PDF、掃描文件和任何其他檔案，都加密存放在同一個保險箱裡。" loading="lazy" decoding="async"></div><figcaption><strong>檔案。</strong>PDF、掃描文件和任何其他檔案，都加密存放在同一個保險箱裡。</figcaption></figure><figure class="shot"><div class="frame phone"><img src="/img/s/iphone-settings-en-dark-1x.webp" srcset="/img/s/iphone-settings-en-dark-1x.webp 1x, /img/s/iphone-settings-en-dark-2x.webp 2x" width="240" height="519" alt="降低保護的設定需要通過 Face ID、指紋或手機密碼驗證。儲存空間用量也在這裡查看。" loading="lazy" decoding="async"></div><figcaption><strong>降低保護的設定需要通過 Face ID、指紋或手機密碼驗證。</strong>儲存空間用量也在這裡查看。</figcaption></figure></div>
     <h3 class="sub">在手機和平板上</h3>
     <div class="devices"><figure class="dev dev-ipad"><div class="frame ipad"><img src="/img/s/ipad-notes-en-dark-1x.webp" srcset="/img/s/ipad-notes-en-dark-1x.webp 1x, /img/s/ipad-notes-en-dark-2x.webp 2x" width="360" height="518" alt="iPad" loading="lazy" decoding="async"></div><figcaption><strong>iPad</strong></figcaption></figure><figure class="dev dev-android"><div class="frame android"><img src="/img/s/android-voice-en-dark-1x.webp" srcset="/img/s/android-voice-en-dark-1x.webp 1x, /img/s/android-voice-en-dark-2x.webp 2x" width="200" height="444" alt="Android" loading="lazy" decoding="async"></div><figcaption><strong>Android</strong></figcaption></figure></div>
   </section>
   <section class="block" id="how" aria-labelledby="h-how">
-    <h2 id="h-how">Cozy Safe 如何保護你</h2>
-    <p class="section-lead">你的資料不會以未加密的形式離開裝置，負責加密的程式碼也完全公開。</p>
+    <h2 id="h-how">資料如何受到保護</h2>
+    <p class="section-lead">備份和同步只傳送加密後的資料。原始碼公開。</p>
     <div class="features">
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><h3>在裝置上加密</h3><p>所有內容在寫入裝置之前就已加密。備份和同步的資料也始終是加密過的。</p></div>
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></div><h3>保險箱密碼加上復原金鑰</h3><p>保險箱密碼會搭配一組隨機產生的 24 個單字的復原金鑰。即使有人拿到你的檔案，也猜不出密碼。</p></div>
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M5.8 5.8A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.3-.2M21.5 16.5A4.5 4.5 0 0 0 17.5 10h-1.8A7 7 0 0 0 10 5.1"/></svg></div><h3>不經過我們的伺服器</h3><p>在同一 Wi‑Fi 下直接同步到你的另一台裝置，或透過你自己的 Google Drive 同步。不需要帳號，沒有廣告，沒有追蹤。</p></div>
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></div><h3>螢幕上也不外露</h3><p>密碼和復原金鑰在你點選「顯示」之前都會隱藏。複製的文字 60 秒後自動清除。離開 App，保險箱就會鎖定。</p></div>
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10M8 9l4 4 4-4"/><rect x="4" y="15" width="16" height="6" rx="2"/><path d="M8 18h.01"/></svg></div><h3>備份由你掌控</h3><p>備份成一個加密檔案，想存在哪裡都可以。換到新裝置時，用復原金鑰和密碼開啟即可。</p></div>
-      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg></div><h3>開放原始碼</h3><p>任何人都能閱讀和檢查程式碼（GPL-3.0）。安裝檔由 GitHub 建置，並附有可驗證的來源證明。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><h3>在裝置上加密</h3><p>項目會先在裝置上加密，再存入保險箱。備份和同步的資料只包含加密後的資料。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></div><h3>保險箱密碼加上復原金鑰</h3><p>保險箱使用保險箱密碼和一組隨機產生的 24 個單字的復原金鑰加密。沒有復原金鑰，光有檔案副本無法用來猜測密碼。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M5.8 5.8A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.3-.2M21.5 16.5A4.5 4.5 0 0 0 17.5 10h-1.8A7 7 0 0 0 10 5.1"/></svg></div><h3>沒有 Cozy Pi 伺服器</h3><p>在同一 Wi‑Fi 下與你的另一台裝置直接同步，或透過你自己的 Google Drive 同步。App 沒有帳號、廣告，也沒有分析工具。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/></svg></div><h3>螢幕上也不外露</h3><p>密碼和復原金鑰在你點選「顯示」之前都會隱藏。複製的文字 60 秒後清除，密碼和驗證碼則為 90 秒。預設情況下，離開 App 時保險箱會鎖定。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10M8 9l4 4 4-4"/><rect x="4" y="15" width="16" height="6" rx="2"/><path d="M8 18h.01"/></svg></div><h3>備份到檔案</h3><p>備份成一個加密檔案，想存在哪裡都可以。換到新裝置時，用復原金鑰和密碼開啟即可。</p></div>
+      <div class="feat"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></svg></div><h3>開放原始碼</h3><p>任何人都能閱讀和檢查程式碼（GPL-3.0）。安裝檔在 GitHub Actions 上建置，並附有可驗證的來源證明。</p></div>
     </div>
   </section>
   <section class="block" aria-labelledby="h-lim">
     <h2 id="h-lim">使用前須知</h2>
     <div class="limits" style="margin-top:24px">
       <div class="limit"><h3>無法復原</h3><ul><li>如果保險箱密碼遺失了，或是裝置和復原金鑰都遺失了，任何人都無法找回你的資料。</li><li>請選一組你記得住的密碼，例如一句短句。</li></ul></div>
-      <div class="limit"><h3>它做不到的事</h3><ul><li>這款 App 還很新：請經常備份到檔案。</li><li>無法保護已經感染惡意軟體的裝置。</li><li>任何知道密碼的人都能打開保險箱。</li></ul></div>
+      <div class="limit"><h3>它做不到的事</h3><ul><li>這款 App 還很新，尚未經過獨立的安全性稽核。請經常備份到檔案。</li><li>無法保護已經感染惡意軟體的裝置。</li><li>任何知道密碼的人都能打開保險箱。</li></ul></div>
     </div>
   </section>
   <section class="block" id="download" aria-labelledby="h-dl">

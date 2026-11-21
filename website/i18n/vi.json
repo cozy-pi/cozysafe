@@ -2,27 +2,27 @@
  "lang_label": "Ngôn ngữ",
  "home": {
   "title": "Cozy Safe: két mã hoá mã nguồn mở",
-  "desc": "Cozy Safe giữ ghi chú, ảnh, video, ghi âm, tệp, mật khẩu và mã xác minh hai bước của bạn được mã hoá ngay trên máy. Không tài khoản, không máy chủ. Miễn phí, mã nguồn mở.",
+  "desc": "Cozy Safe giữ ghi chú, ảnh, video, ghi âm, tệp, mật khẩu và mã xác minh hai bước của bạn được mã hoá ngay trên máy. Không cần tài khoản, không có máy chủ của Cozy Pi. Miễn phí, mã nguồn mở.",
   "nav_how": "Cách hoạt động",
   "nav_dl": "Tải về",
   "nav_src": "Mã nguồn",
-  "h1": "Két bảo mật cho các dữ liệu quan trọng của bạn.",
-  "lead": "Ghi chú, ảnh, giấy tờ, mật khẩu và mã xác minh hai bước được mã hoá ngay trên máy của bạn. Không có mật khẩu của bạn thì không ai mở được, kể cả chúng tôi.",
+  "h1": "Két mã hoá cho tệp, ghi chú và mật khẩu.",
+  "lead": "Ghi chú, ảnh, giấy tờ, mật khẩu và mã xác minh hai bước được mã hoá ngay trên máy. Không có tài khoản, không có máy chủ: Cozy Pi không giữ bản sao dữ liệu và cũng không giữ khoá.",
   "btn": "Tải về",
   "btn_for": "Tải cho {p}",
   "btn_src": "Xem mã nguồn",
-  "unlock": "Mở két",
-  "unlock_bio": "Mở bằng Face ID",
-  "note": "<strong>Bản thử nghiệm.</strong> App còn mới: hãy <em>Sao lưu ra tệp</em> thường xuyên, và đừng để bản duy nhất của thứ gì quan trọng ở đây.",
-  "note_live": "App còn mới: hãy <em>Sao lưu ra tệp</em> thường xuyên, và đừng để bản duy nhất của thứ gì quan trọng ở đây.",
-  "h_how": "Cozy Safe giữ an toàn cho bạn thế nào",
-  "p_how": "Dữ liệu không bao giờ rời máy ở dạng chưa mã hoá, và đoạn mã làm việc đó ai cũng đọc được.",
+  "unlock": "Mở khoá",
+  "unlock_bio": "Mở khoá bằng Face ID",
+  "note": "<strong>Bản thử nghiệm.</strong> App còn mới: hãy <em>Sao lưu ra tệp</em> thường xuyên, và đừng để ở đây bản duy nhất của bất cứ thứ gì quan trọng.",
+  "note_live": "App còn mới: hãy <em>Sao lưu ra tệp</em> thường xuyên, và đừng để ở đây bản duy nhất của bất cứ thứ gì quan trọng.",
+  "h_how": "Dữ liệu được bảo vệ thế nào",
+  "p_how": "Sao lưu và đồng bộ chỉ mang dữ liệu đã mã hoá. Mã nguồn công khai.",
   "c1h": "Mã hoá ngay trên máy",
-  "c1p": "Mọi thứ được mã hoá trước khi ghi xuống máy. Tệp sao lưu hay dữ liệu đồng bộ cũng chỉ là dữ liệu đã mã hoá.",
+  "c1p": "Mỗi mục được mã hoá ngay trên máy trước khi lưu vào két. Tệp sao lưu và dữ liệu đồng bộ chỉ chứa dữ liệu đã mã hoá.",
   "c2h": "Mật khẩu két và Khoá khôi phục",
-  "c2p": "Mật khẩu két đi cùng một Khoá khôi phục ngẫu nhiên 24 từ. Ai lấy được tệp của bạn cũng không dò ra mật khẩu.",
+  "c2p": "Két được mã hoá bằng mật khẩu két và một Khoá khôi phục ngẫu nhiên 24 từ. Thiếu Khoá khôi phục, người có bản sao tệp không thể dò mật khẩu.",
   "c3h": "Mã nguồn công khai",
-  "c3p": "Ai cũng đọc và kiểm tra được mã nguồn (giấy phép GPL-3.0). Bản cài do GitHub build, có chứng thực nguồn gốc.",
+  "c3p": "Ai cũng đọc và kiểm tra được mã nguồn (giấy phép GPL-3.0). Bản cài được build trên GitHub Actions, kèm chứng thực nguồn gốc mà bạn tự kiểm tra được.",
   "h_lim": "Những điều nên biết trước",
   "l1h": "Không có cách khôi phục",
   "l1": [
@@ -31,13 +31,13 @@
   ],
   "l2h": "Những gì app không làm được",
   "l2": [
-   "App còn mới: hãy sao lưu ra tệp thường xuyên.",
+   "App còn mới và chưa được kiểm định bảo mật độc lập. Hãy sao lưu ra tệp thường xuyên.",
    "Không bảo vệ được máy đã nhiễm mã độc.",
    "Ai biết mật khẩu thì mở được két."
   ],
   "h_dl": "Tải về",
   "p_dl": "Miễn phí, không cần tài khoản.",
-  "mac": "Đã ký và được Apple kiểm duyệt. Mở file, kéo Cozy Safe vào thư mục Applications.",
+  "mac": "Đã ký và được Apple chứng thực (notarize). Mở tệp .dmg rồi kéo Cozy Safe vào thư mục Applications.",
   "win": "Chưa ký: nếu SmartScreen cảnh báo, chọn \"Thông tin thêm\" rồi \"Vẫn chạy\".",
   "lin": "Giải nén rồi chạy <code>./cozysafe</code>. Cần GTK 3 và libsecret.",
   "andr": "Ký bằng khoá của Cozy Pi. Khi Android hỏi, cho phép trình duyệt cài ứng dụng.",
@@ -47,29 +47,29 @@
   "apk": "Tệp APK",
   "get": "Tải về",
   "soon": "Sắp có",
-  "verify": "Muốn kiểm file tải về, so với <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> hoặc chạy <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Các phiên bản cũ ở <a href=\"{REPO}/releases\">trang phát hành</a>.",
-  "f_by": "Làm bởi",
+  "verify": "Để kiểm tra tệp tải về, hãy so với <a href=\"{BASE}SHA256SUMS.txt\">SHA256SUMS.txt</a> hoặc chạy <code>gh attestation verify &lt;file&gt; -R cozy-pi/cozysafe</code>. Các phiên bản cũ ở <a href=\"{REPO}/releases\">trang phát hành</a>.",
+  "f_by": "Sản phẩm của",
   "f_src": "Mã nguồn",
   "f_lic": "GPL-3.0",
   "f_priv": "Quyền riêng tư",
-  "h_see": "Mọi thứ trong một két",
+  "h_see": "Trong két có gì",
   "p_see": "Ghi chú, ảnh, video, ghi âm và tệp bất kỳ. Đây là màn hình thật của app, với nội dung mẫu.",
-  "s_lock": "<strong>Mở bằng Face ID, vân tay hoặc mật khẩu.</strong> Màn khoá không lộ chút gì bên trong.",
-  "s_library": "<strong>Ảnh và video.</strong> Chụp bằng camera riêng của app: không bao giờ lọt vào thư viện ảnh của máy.",
-  "s_notes": "<strong>Ghi chú.</strong> Danh sách và tìm kiếm chỉ hiện tiêu đề, người đứng cạnh không đọc được.",
+  "s_lock": "<strong>Mở bằng Face ID, vân tay hoặc mật khẩu.</strong> Màn hình khoá không hiện gì trong két.",
+  "s_library": "<strong>Ảnh và video.</strong> Chụp bằng camera của app thì không lưu vào thư viện ảnh của máy.",
+  "s_notes": "<strong>Ghi chú.</strong> Mặc định, danh sách và tìm kiếm chỉ hiện tiêu đề; nội dung chỉ hiện khi mở ghi chú.",
   "s_voice": "<strong>Ghi âm,</strong> được mã hoá ngay khi bạn bấm dừng.",
   "s_files": "<strong>Tệp.</strong> PDF, giấy tờ scan và mọi loại tệp, mã hoá chung một két.",
   "s_group": "<strong>Nhóm.</strong> Ảnh hộ chiếu, bản scan và ghi chú nằm chung một nhóm, mở từ mục nào cũng thấy.",
-  "s_settings": "<strong>Mọi cài đặt bảo mật đều hỏi Face ID trước.</strong> Nhìn là biết thứ gì chiếm chỗ.",
+  "s_settings": "<strong>Cài đặt làm giảm bảo vệ sẽ hỏi Face ID, vân tay hoặc mật mã máy.</strong> Dung lượng đã dùng cũng xem ở đây.",
   "h_dev": "Trên điện thoại và máy tính bảng",
   "d_mac": "<strong>macOS</strong> · có cả Windows và Linux",
   "d_ipad": "<strong>iPad</strong>",
   "d_android": "<strong>Android</strong>",
-  "c4h": "Không qua máy chủ của chúng tôi",
-  "c4p": "Đồng bộ thẳng với máy kia trong cùng Wi‑Fi, hoặc qua Google Drive của chính bạn. Không tài khoản, không quảng cáo, không theo dõi.",
+  "c4h": "Không có máy chủ của Cozy Pi",
+  "c4p": "Đồng bộ trực tiếp với máy khác của bạn trong cùng Wi‑Fi, hoặc qua Google Drive của chính bạn. App không có tài khoản, quảng cáo hay công cụ phân tích.",
   "c5h": "Kín đáo trên màn hình",
-  "c5p": "Mật khẩu và Khoá khôi phục bị che cho tới khi bạn bấm Xem. Chữ đã sao chép tự xoá sau 60 giây. Rời app là két khoá ngay.",
-  "c6h": "Sao lưu do bạn giữ",
+  "c5p": "Mật khẩu và Khoá khôi phục được che cho tới khi bạn bấm Xem. Nội dung đã sao chép tự xoá sau 60 giây, riêng mật khẩu và mã là 90 giây. Mặc định, két khoá khi bạn rời app.",
+  "c6h": "Sao lưu ra tệp",
   "c6p": "Sao lưu ra một tệp đã mã hoá, cất ở đâu tuỳ bạn. Sang máy mới thì mở lại bằng Khoá khôi phục và mật khẩu.",
   "f_fb": "Góp ý"
  },
@@ -89,7 +89,7 @@
    [
     "Những gì nằm trên máy bạn",
     [
-     "Két, ghi chú, file và ảnh, luôn được mã hoá bằng khoá suy ra từ mật khẩu két và Khoá khôi phục của bạn.",
+     "Két, ghi chú, tệp và ảnh, luôn được mã hoá bằng khoá suy ra từ mật khẩu két và Khoá khôi phục của bạn.",
      "Cài đặt của app như ngôn ngữ, giao diện sáng hay tối."
     ]
    ],
@@ -108,7 +108,7 @@
     [
      "Camera: chỉ khi bạn mở camera, để chụp ảnh và quay video thẳng vào két hoặc quét mã QR xác minh hai bước. Ảnh và video không lưu vào thư viện ảnh của máy.",
      "Thư viện ảnh: chỉ khi bạn thêm ảnh hoặc video từ đó vào két, và để xoá bản gốc sau đó nếu bạn yêu cầu.",
-     "Micro: chỉ trong lúc bạn ghi âm hoặc quay video trong ứng dụng. Bản ghi vào thẳng két.",
+     "Micro: chỉ trong lúc bạn ghi âm hoặc quay video trong app. Bản ghi vào thẳng két.",
      "Sinh trắc học: chỉ khi bạn bật mở khoá bằng Face ID, Touch ID hoặc vân tay. Dữ liệu sinh trắc học không rời phần cứng bảo mật của máy và app không bao giờ truy cập được.",
      "Mạng cục bộ (iPhone) / internet (Android) / mạng (macOS): chỉ để đồng bộ với máy khác của bạn trong cùng Wi-Fi, khi bạn bắt đầu.",
      "Internet (Google Drive): chỉ khi bạn kết nối Google Drive, để đăng nhập Google và truy cập Drive của bạn."
@@ -117,7 +117,7 @@
    [
     "Trang web này",
     [
-     "safe.cozypi.com là các trang tĩnh do Cloudflare phục vụ, không đặt cookie, không chạy công cụ phân tích. Cloudflare có thể giữ nhật ký kỹ thuật thông thường (như địa chỉ IP) để bảo mật, theo chính sách riêng tư của họ. File tải về do GitHub phục vụ."
+     "safe.cozypi.com là các trang tĩnh do Cloudflare phục vụ, không đặt cookie, không chạy công cụ phân tích. Cloudflare có thể giữ nhật ký kỹ thuật thông thường (như địa chỉ IP) để bảo mật, theo chính sách riêng tư của họ. Tệp tải về do GitHub phục vụ."
     ]
    ],
    [
@@ -138,7 +138,7 @@
  "feedback": {
   "title": "Góp ý · Cozy Safe",
   "h1": "Góp ý",
-  "intro": "Có ý tưởng, gặp lỗi, hay chỗ nào khó dùng, cứ viết cho chúng tôi. Tin nào chúng tôi cũng đọc.",
+  "intro": "Gửi ý tưởng, báo lỗi hoặc chỗ nào khó dùng qua email hoặc GitHub.",
   "email_h": "Email",
   "email_p": "Viết bằng tiếng Việt hay ngôn ngữ nào cũng được.",
   "copy": "Sao chép",
@@ -156,10 +156,10 @@
   "shot_h": "Gửi ảnh chụp màn hình",
   "shot_steps": [
    "Mở két.",
-   "Trong Cài đặt, tắt “Chặn chụp màn hình” (app sẽ hỏi Face ID, vân tay hoặc mật mã máy).",
+   "Nếu “Chặn chụp màn hình” đang bật trong Cài đặt, hãy tắt (app sẽ hỏi Face ID, vân tay hoặc mật mã máy).",
    "Chụp màn hình.",
    "Xem lại ảnh, bỏ những gì riêng tư.",
-   "Bật lại “Chặn chụp màn hình”."
+   "Nếu đã tắt “Chặn chụp màn hình”, hãy bật lại."
   ],
   "shot_after": "Chụp xong nhớ bật lại, và xem kỹ ảnh không có thông tin riêng tư.",
   "never": "Đừng gửi mật khẩu két, Khoá khôi phục hay thứ gì trong két. Chúng tôi không bao giờ hỏi những thứ đó.",
