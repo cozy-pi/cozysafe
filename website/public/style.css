@@ -55,7 +55,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-
 .doc .lang { margin-left: auto; }
 h1, h2, h3 { hyphens: auto; overflow-wrap: break-word; }
 
-.hero-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 48px; align-items: center; padding: 48px 0 96px; }
+.hero-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 48px; align-items: center; padding: 48px 0 40px; }
 .hero h1 { margin: 0 0 18px; font-size: clamp(36px, 5.6vw, 58px); line-height: 1.06; letter-spacing: -.03em; font-weight: 750; }
 .lead { margin: 0 0 30px; font-size: 19px; color: rgba(255,255,255,.82); max-width: 36ch; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; }
