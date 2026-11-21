@@ -30,6 +30,8 @@ UPDATED = '2026-11-16'  # privacy policy date
 # set it the day both stores have approved 1.0.0 (docs/release-public.md), not before
 # (the links answer "not found" until then).
 LIVE = False
+# Google Play went public first (2026-11-22); the App Store is still in review.
+PLAY_LIVE = True
 APP_STORE = 'https://apps.apple.com/app/id6824510222'
 GOOGLE_PLAY = 'https://play.google.com/store/apps/details?id=com.cozypi.cozysafe'
 
@@ -184,7 +186,7 @@ def page(lang, texts, css):
         for d, s, w in SHOTS if d != 'iphone')
     li = lambda items: ''.join(f'<li>{x}</li>' for x in items)
     def card(icon, name, f, key):
-        if LIVE and key == 'andr':  # Google Play first, the signed APK as the second way
+        if (LIVE or PLAY_LIVE) and key == 'andr':  # Google Play first, the signed APK as the second way
             return (f'<div class="dl"><div class="os">{ic(icon, 30)}{name}</div><p>{t["andr_store"]}</p>'
                     f'<a class="get" href="{GOOGLE_PLAY}">{ic("download", 18)}Google Play</a>'
                     f'<small><a href="{BASE}{f}" title="{f}">{t["apk"]}</a></small></div>')
@@ -199,7 +201,7 @@ def page(lang, texts, css):
                  f'<span class="get">{t["soon"]}</span><small aria-hidden="true">&nbsp;</small></div>')
     cards += ''.join(card(*p) for p in PLATFORMS)
     # The main button on a phone: the store once the app is there, the APK until then.
-    android_to = GOOGLE_PLAY if LIVE else BASE + 'CozySafe-android.apk'
+    android_to = GOOGLE_PLAY if (LIVE or PLAY_LIVE) else BASE + 'CozySafe-android.apk'
     ios_to = f"p = 'iPhone'; to = '{APP_STORE}';" if LIVE else 'return;'
     studio = 'https://cozypi.com/' + ('' if lang == 'en' else f'{lang}/')
     return f'''<!doctype html>
