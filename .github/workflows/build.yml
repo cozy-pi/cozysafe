@@ -33,6 +33,10 @@ on:
       internal_only:
         type: boolean
         default: false
+      # Android: also the closed test (alpha). Off by default since production access.
+      closed_test:
+        type: boolean
+        default: false
       # Android: the Test sign-in button for closed testing (lib/test_login.dart).
       test_login:
         type: boolean
@@ -406,7 +410,7 @@ jobs:
           sparse-checkout: tools
           path: src
       - name: Google Play, the same build into closed testing (alpha, reviewed by Google)
-        if: ${{ !inputs.internal_only }}
+        if: ${{ inputs.closed_test && !inputs.internal_only }}
         env:
           SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           BUILD: ${{ inputs.build }}

@@ -218,7 +218,7 @@ and what is listed in [`docs/backlog.md`](docs/backlog.md).
 | macOS | [CozySafe-macos.dmg](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-macos.dmg), signed and notarized |
 | Windows | [CozySafe-windows-x64.zip](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-windows-x64.zip), not signed yet (SmartScreen: More info → Run anyway) |
 | Linux | [CozySafe-linux-x64.tar.gz](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-linux-x64.tar.gz), needs GTK 3 and libsecret |
-| Android | [CozySafe-android.apk](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-android.apk), or Google Play testing (internal and Alpha) |
+| Android | [CozySafe-android.apk](https://github.com/cozy-pi/cozysafe/releases/latest/download/CozySafe-android.apk), or Google Play |
 | iPhone | TestFlight (invite only for now) |
 
 Every file has a GitHub build-provenance attestation:
@@ -270,10 +270,13 @@ flutter run
 
 Releases are one button: `gh workflow run release.yml -R cozy-pi/cozysafe` picks
 the next version name (1.0.0, 1.0.1, …; `-f bump=minor` for 1.1.0) and publishes it
-everywhere at once: TestFlight, Google Play (internal and Alpha), and a GitHub release
+everywhere at once: TestFlight, Google Play internal testing, and a GitHub release
 with the desktop builds and the APK. Each platform ships as soon as its build is done;
 signing and store keys never reach the build jobs ([supply chain](docs/supply-chain.md)).
 Write the changes under that version in [CHANGELOG.md](CHANGELOG.md) first.
+Google Play production takes a build from there with `play-production.yml`; the closed
+test (alpha) is no longer fed (`-f closed_test=true` if it is ever needed again). New work is
+tried first in Cozy Safe Beta (`--ref beta`), which installs next to Cozy Safe.
 
 UI changes start as a mockup made from the app itself: `app/tool/mockup.sh` renders every
 screen in dark and light inside an iPhone frame, with the changed parts outlined

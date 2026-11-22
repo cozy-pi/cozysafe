@@ -2,7 +2,9 @@
 # every platform with it, and each platform publishes as soon as it is built (no
 # platform waits for another):
 #   iPhone  → TestFlight (internal testers)
-#   Android → Google Play closed test (Alpha)
+#   Android → Google Play internal testing (play-production.yml takes it to everyone;
+#             the closed test (alpha) only with -f closed_test=true: since production
+#             access (2026-11-19) it is not needed, and its testers follow production)
 #   desktop + Android APK → GitHub release vX.Y.Z (safe.cozypi.com links follow it)
 #
 # The version name is what people see and report ("0.1.7 crashes when…"); the build
@@ -36,6 +38,12 @@ on:
         default: patch
       internal_only:
         description: "Internal testers only (TestFlight, Play internal): no alpha, no GitHub release"
+        type: boolean
+        default: false
+      # Off since production access (owner 2026-11-22): new builds are tried in Cozy Safe
+      # Beta, then go internal → production. Testers left on alpha get production updates.
+      closed_test:
+        description: "Android: also put the build in Google Play's closed test (alpha)"
         type: boolean
         default: false
       # Off unless asked for: the app is public, and play-production.yml can put any build
@@ -127,6 +135,7 @@ jobs:
       publish: true
       internal_only: ${{ inputs.internal_only || inputs.beta || github.ref_name == 'beta' }}
       test_login: ${{ inputs.test_login }}
+      closed_test: ${{ inputs.closed_test }}
       beta: ${{ inputs.beta || github.ref_name == 'beta' }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
