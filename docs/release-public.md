@@ -28,6 +28,11 @@ Done:
   and permissions (it had testing tracks only → 403 "caller does not have permission"), and
   the production track needs its countries set in Play Console first (→ 403 "Release in
   track targeting no countries").
+- Play tracks after production access (owner 2026-11-22): `release.yml` no longer puts builds
+  in the closed test (alpha); it stops at build 1192, and its testers get each newer
+  production build by themselves (Play gives a device the highest build of the tracks it may
+  see). New work: Cozy Safe Beta first, then internal, then `play-production.yml`.
+  `-f closed_test=true` feeds alpha again if ever needed.
 - France: encryption declaration filed with ANSSI 2026-11-17 (docs/export-compliance.md).
 
 To do:
