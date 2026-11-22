@@ -487,11 +487,11 @@ everywhere, easy to hit with a thumb.
   in the system's destructive red, like Delete for good in Recently deleted (exception to
   black and white, owner 2026-10-21). One component for both (`SelectionBar`,
   `lib/widgets/selection_bar.dart`): Done · Select all · the actions.
-- **Only what the vault holds, most first.** The bottom capsule offers the home tab, then
+- **What the vault holds most, first.** The bottom capsule offers the home tab, then
   the three kinds with the most items, most on the left: Overview · 1 · (+) · 2 · 3
-  (owner 2026-11-03; a tie keeps Library, Files, Notes, Voice). A kind with no items has
-  no tab; the fourth opens from the overview. An empty vault shows its icon, one line,
-  and big add tiles.
+  (owner 2026-11-03; a tie keeps Library, Files, Notes, Passwords, Voice). Always three,
+  kinds with no items filling up (owner 2026-11-22); the others open from the overview.
+  An empty vault shows its icon, one line, and big add tiles, on the overview.
 - **Quick buttons above +** are the ways to add of those same three kinds, the most in
   the middle: 2 · 1 · 3 (Library: Photo / Video, or Photos / Files with no camera; Files:
   Photos / Files; Notes and Voice: Note / Voice, one button for both, the next way filling
@@ -542,6 +542,11 @@ everywhere, easy to hit with a thumb.
 - **Wide phone screens** (iPhone Duo's inner display, 669 pt; owner 2026-11-17): the
   phone layout up to 700 pt, but the bar stops at `barMaxWidth` (520), centred, and the
   library starts at five photos a row from `wideishPhone` (600) until pinched.
+- **Bottom bar: always four tabs** (owner 2026-11-22): the overview and the three kinds
+  the vault holds most of, most on the left; a kind with nothing in it too, so a new
+  vault has Overview · Library · + · Files · Notes and the + is in the middle from the
+  first day. A tab of an empty kind opens its empty page. An empty vault shows its
+  welcome and add tiles on the overview, with the + as well.
 - **Bottom bar: icons only** (owner 2026-11-17, both layouts: + in the middle, + on a
   side). The section's name is the tooltip and the screen reader's label. With the + on a
   side the home tab stays put on the left and the others share the rest, scrolling
@@ -653,8 +658,8 @@ everywhere, easy to hit with a thumb.
   motion). Light: white bubble; dark: a deep bubble with a faint edge.
 - After a vault is created: Add (the +; in an empty vault the add tiles) · Open and pick
   (the first item showing: tap, hold for the menu, hold and drag to pick many; an empty
-  vault: the tiles, "what you add shows up here") · Sections (the tabs; left out while the
-  vault is empty and the bar has none) · Settings (sync, backup, security) · Locks by
+  vault: the tiles, "what you add shows up here") · Sections (the tabs, in an empty vault
+  too) · Settings (sync, backup, security) · Locks by
   itself (the lock button; else the home tab, "hold here to lock now"; else Settings) ·
   Keep a second copy (points at Settings, with the 24 words and password as the only way
   back on a new phone, "Set up sync now" opens Settings then Sync, and Later).
