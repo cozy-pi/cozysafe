@@ -4,6 +4,15 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
+## 1.0.10 (2026-11-22)
+
+### Changed
+- The bottom bar always has its four tabs and the + in the middle: the overview and the
+  three kinds the vault holds most of, a kind with nothing in it too. A new vault no
+  longer starts with a bar of one button. A tab of an empty kind opens its empty page.
+- An empty vault keeps its big add tiles and has the + as well. Holding the vault's badge
+  in the bar locks it from the first day (Settings can bring the lock button back).
+
 ## 1.0.9 (2026-11-19)
 
 ### Changed

@@ -183,7 +183,7 @@ void main() {
     expect(find.byType(VaultHomeScreen), findsOneWidget);
     expect(find.byType(CoachTour), findsOneWidget);
     expect(find.byKey(const ValueKey('tip-add')), findsOneWidget);
-    expect(find.text('1/10'), findsOneWidget); // five here, five in Settings
+    expect(find.text('1/11'), findsOneWidget); // six here, five in Settings
     // A tap on the dim does nothing.
     await t.tapAt(const Offset(20, 300));
     await _settle(t);
@@ -192,7 +192,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('tip-next')));
     await _settle(t);
     expect(find.byKey(const ValueKey('tip-items')), findsOneWidget);
-    expect(find.text('2/10'), findsOneWidget);
+    expect(find.text('2/11'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('tip-skip')));
     await _settle(t);
     expect(find.byType(CoachTour), findsNothing);
@@ -203,21 +203,21 @@ void main() {
     await _pump(t, _app(const VaultHomeScreen(libraryDir: 'lib', vault: _vault, tour: TourKind.created)));
     await _settle(t);
     expect(find.byType(CoachTour), findsOneWidget);
-    // Add → items → Settings → the lock → a second copy.
-    for (final id in ['add', 'items', 'settings', 'lock']) {
+    // Add → items → the bar's tabs → Settings → the lock → a second copy.
+    for (final id in ['add', 'items', 'tabs', 'settings', 'lock']) {
       expect(find.byKey(ValueKey('tip-$id')), findsOneWidget);
       await t.tap(find.byKey(const ValueKey('tip-next')));
       await _settle(t);
     }
     expect(find.byKey(const ValueKey('tip-copy')), findsOneWidget);
-    expect(find.text('5/10'), findsOneWidget);
+    expect(find.text('6/11'), findsOneWidget);
     expect(find.byKey(const ValueKey('tip-action')), findsNothing);
     await t.tap(find.byKey(const ValueKey('tip-next')));
     await _settle(t);
     expect(find.byType(SettingsScreen), findsOneWidget);
     for (final (i, id) in ['sync', 'security', 'shield', 'backup', 'guide'].indexed) {
       expect(find.byKey(ValueKey('tip-$id')), findsOneWidget, reason: id);
-      expect(find.text('${i + 6}/10'), findsOneWidget);
+      expect(find.text('${i + 7}/11'), findsOneWidget);
       await t.tap(find.byKey(const ValueKey('tip-next')));
       await _settle(t);
     }
@@ -228,10 +228,13 @@ void main() {
   testWidgets('after a restore the tour is the short one, and Settings runs it again', (t) async {
     await _pump(t, _app(const VaultHomeScreen(libraryDir: 'lib', vault: _vault, tour: TourKind.restored)));
     await _settle(t);
-    // Add → items → Settings (an empty vault has no tabs yet), then Done.
+    // Add → items → the bar's tabs (an empty vault has them too) → Settings, then Done.
     expect(find.byKey(const ValueKey('tip-add')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('tip-next')));
     await _settle(t);
+    await t.tap(find.byKey(const ValueKey('tip-next')));
+    await _settle(t);
+    expect(find.byKey(const ValueKey('tip-tabs')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('tip-next')));
     await _settle(t);
     expect(find.byKey(const ValueKey('tip-settings')), findsOneWidget);
@@ -252,10 +255,10 @@ void main() {
     await t.tap(find.byKey(const ValueKey('guide-row')));
     await _settle(t);
     expect(find.byType(SettingsScreen), findsNothing);
-    // Add → items → Settings → the lock → a second copy (no button: Sync comes next).
-    for (final (i, id) in ['add', 'items', 'settings', 'lock', 'copy'].indexed) {
+    // Add → items → tabs → Settings → the lock → a second copy (no button: Sync comes next).
+    for (final (i, id) in ['add', 'items', 'tabs', 'settings', 'lock', 'copy'].indexed) {
       expect(find.byKey(ValueKey('tip-$id')), findsOneWidget);
-      expect(find.text('${i + 1}/10'), findsOneWidget);
+      expect(find.text('${i + 1}/11'), findsOneWidget);
       expect(find.byKey(const ValueKey('tip-action')), findsNothing);
       await t.tap(find.byKey(const ValueKey('tip-next')));
       await _settle(t);
@@ -264,7 +267,7 @@ void main() {
     expect(find.byType(SettingsScreen), findsOneWidget);
     for (final (i, id) in ['sync', 'security', 'shield', 'backup', 'guide'].indexed) {
       expect(find.byKey(ValueKey('tip-$id')), findsOneWidget, reason: id);
-      expect(find.text('${i + 6}/10'), findsOneWidget);
+      expect(find.text('${i + 7}/11'), findsOneWidget);
       await t.tap(find.byKey(const ValueKey('tip-next')));
       await _settle(t);
     }
@@ -295,7 +298,7 @@ void main() {
     Prefs.write('lock-on-leave', '0');
     await _pump(t, _app(const VaultHomeScreen(libraryDir: 'lib', vault: _vault, tour: TourKind.created)));
     await _settle(t);
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 4; i++) {
       await t.tap(find.byKey(const ValueKey('tip-next')));
       await _settle(t);
     }

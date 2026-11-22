@@ -761,12 +761,71 @@ void main() {
     await g.moveTo(t.getCenter(find.byKey(const ValueKey('add-card-camera'))));
     await t.pump(const Duration(milliseconds: 200));
   });
-  _screen('empty', 'Két trống · thêm bằng ô lớn', home, section: 'library', setup: () {
+  Finder bar() => find.byType(VaultBar);
+  void only(bool Function(ItemInfo) keep) => _itemsNow = _items.where((i) => i.kind == ItemKind.tag || keep(i)).toList();
+  _screen('empty', 'Két trống · thanh dưới đã đủ 4 mục + nút +', home, section: 'library',
+      change: 'Két mới tạo: thanh dưới có đủ Tổng quan · Thư viện · + · Tệp · Ghi chú (trước chỉ có mỗi nút khoá). Nút + ở chính giữa ngay từ đầu; các ô thêm lớn vẫn còn. Giữ biểu tượng két (ô đầu) để khoá',
+      marks: [bar],
+      setup: () {
     debugCamera = true;
     _itemsNow = const [];
   });
-  _screen('one-type', 'Chỉ có ghi chú · thanh dưới gọn', home, section: 'note',
-      setup: () => _itemsNow = _items.where((i) => i.kind == ItemKind.note || i.kind == ItemKind.tag).toList());
+  _screen('empty-add', 'Két trống · bấm +', home, section: 'home',
+      change: 'MỚI: két trống cũng bấm + được, ra hàng nút nhanh và thẻ đủ mọi cách thêm như két đã có đồ',
+      setup: () {
+    debugCamera = true;
+    _itemsNow = const [];
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('action-slot')));
+    await t.pump(const Duration(milliseconds: 600));
+  });
+  _screen('empty-tab-note', 'Két trống · bấm mục Ghi chú', home, section: 'home',
+      change: 'MỚI: mục chưa có gì vẫn mở được từ thanh dưới, hiện trang trống của mục đó',
+      marks: [bar],
+      setup: () {
+    debugCamera = true;
+    _itemsNow = const [];
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('tab-note')));
+    await t.pump(const Duration(milliseconds: 600));
+  });
+  _screen('empty-tab-library', 'Két trống · bấm mục Thư viện', home, section: 'home',
+      change: 'MỚI: trang trống của Thư viện, mở từ thanh dưới',
+      marks: [bar],
+      setup: () {
+    debugCamera = true;
+    _itemsNow = const [];
+  }, act: (t) async {
+    await t.tap(find.byKey(const ValueKey('tab-library')));
+    await t.pump(const Duration(milliseconds: 600));
+  });
+  _screen('empty-left', 'Két trống · nút + đặt bên trái (Cài đặt)', home, section: 'home',
+      change: 'Nút + đặt bên cạnh: thanh cũng luôn đủ 4 mục, nút + nổi phía trên',
+      marks: [bar],
+      setup: () {
+    _leftCamera();
+    _itemsNow = const [];
+  });
+  _screen('empty-lock-button', 'Két trống · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'home',
+      change: 'Bật nút khoá trong Cài đặt: nút khoá đứng bên trái, thanh vẫn đủ 4 mục, + vẫn giữa thanh',
+      marks: [bar],
+      setup: () {
+    debugCamera = true;
+    Prefs.write('hold-home-lock', '0');
+    _itemsNow = const [];
+  });
+  _screen('one-type', 'Chỉ có ghi chú · thanh vẫn đủ 4 mục', home, section: 'note',
+      change: 'Chỉ có một loại: Ghi chú (đang có đồ) đứng đầu, hai ô còn lại là Thư viện và Tệp (trước: chỉ Tổng quan · + · Ghi chú)',
+      marks: [bar],
+      setup: () => only((i) => i.kind == ItemKind.note));
+  _screen('two-types', 'Có ảnh và ghi chú · thanh vẫn đủ 4 mục', home, section: 'home',
+      change: 'Có hai loại: trước là 2 ô bên trái, 1 ô bên phải (lệch); giờ luôn 2 ô mỗi bên',
+      marks: [bar],
+      setup: () => only((i) => i.kind == ItemKind.note || i.kind == ItemKind.photo));
+  _screen('ts-empty', 'Két Tuyệt mật trống (không có Thư viện)', home, section: 'home',
+      change: 'Tuyệt mật không có Thư viện: Tổng quan · Tệp · + · Ghi chú · Mật khẩu',
+      marks: [bar],
+      setup: () => _itemsNow = const []);
   _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
   if (groupsShown) _screen('tag', 'Thư viện · trong nhóm "Du lịch"', home, section: 'library', act: (t) => _tapChip(t, 'Du lịch'));
@@ -780,8 +839,6 @@ void main() {
   _screen('camera', 'Chụp / Quay → máy ảnh, mở ở Ảnh', () => camera(video: false), setup: still);
   _screen('camera-video', 'Quay video', () => camera(video: true), setup: still);
   _screen('camera-zoom', 'Máy ảnh · chạm để lấy nét, chụm hai ngón để zoom', () => camera(video: false),
-      change: 'MỚI: chạm vào khung là lấy nét + đo sáng ở đó (ô vuông hiện thoáng qua); chụm hai ngón để zoom, nút 2.0× ở trên, chạm vào để về 1×. Ảnh giờ chụp bằng chính camera, đủ độ phân giải cảm biến (két Tuyệt mật giữ cách cũ, không ghi tệp)',
-      marks: [() => find.byKey(const ValueKey('camera-zoom')), () => find.byKey(const ValueKey('camera-focus'))],
       setup: () {
     still();
     CameraView.debugZoomFocus = (2.0, const Offset(150, 260));

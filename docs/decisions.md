@@ -6,6 +6,25 @@ depends on memory. Details live in the linked docs; this page is the index.
 How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
 [cryptography.md](cryptography.md).
 
+## 2026-11-22 — The bar always has four tabs and the +
+
+**Owner:** a vault just made had a bar of one button (the lock). The bar must always have
+its five slots, so the + is in the middle from the first day.
+
+- The bar is always the overview and the three kinds the vault holds most of, a kind with
+  nothing in it too (this replaces "a kind with no items gets no tab", 2026-11-03). A tie
+  keeps the fixed order, so an empty vault shows Overview · Library · + · Files · Notes
+  (Top Secret Mode, which has no Library: Overview · Files · + · Notes · Passwords).
+- A tab of an empty kind opens that kind's empty page (the pages already existed: they
+  showed while adding the first item of a kind).
+- An empty vault keeps its welcome and add tiles, on the overview, and has the + and its
+  quick buttons as well. It opens on the overview whatever tab was used last.
+- Holding the overview tab locks from the first day, so an empty vault no longer shows
+  the lock button (Settings can still bring it back). The tour's lock tip points at the
+  tab, and the tour shows the tabs tip in an empty vault too.
+- Why not keep hiding empty kinds and pad the bar with blank slots: gaps that do nothing,
+  and a new vault would still have no way into its sections.
+
 ## 2026-11-19 — Full-size photos, and no leftover "too many tries"
 
 - The app's camera takes photos itself (`takePicture`, full sensor size), with tap to
@@ -237,7 +256,8 @@ the left (1 → 2 → 3); the quick buttons above + add those three, in the orde
 
 - Ranked by number of items; a tie keeps the old order Library, Files, Notes, Voice.
   Voice gets a tab when it is among the three (it had none since 2026-10-24).
-- A kind with no items gets no tab; the quick buttons are always three (an empty vault
+- A kind with no items gets no tab (changed 2026-11-22: the bar always has four tabs);
+  the quick buttons are always three (an empty vault
   ranks every kind equal). The fourth kind is reached from the overview; the card above
   + still lists every way.
 - Library's quick button takes a photo (owner); with no camera, add photos. Record video

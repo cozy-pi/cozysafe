@@ -413,6 +413,7 @@ void main() {
       expect(find.byKey(ValueKey('add-choice-$k')), findsOneWidget, reason: k);
     }
     expect(find.byType(EntryWizard), findsNothing);
+    await t.pump(const Duration(seconds: 6));
   });
 
   testWidgets('the home page always shows Passwords, 0 included; it opens the section, which offers to add one', (t) async {

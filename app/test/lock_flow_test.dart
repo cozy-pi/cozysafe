@@ -334,7 +334,8 @@ void main() {
     await _tapDigits(t, _pin);
     await _settle(t);
     expect(find.byType(VaultHomeScreen), findsOneWidget);
-    await t.tap(find.byTooltip('Lock'));
+    // No lock button: holding the vault's badge in the bar locks, in an empty vault too.
+    await t.longPress(find.byKey(const ValueKey('home-tab')));
     await _settle(t);
     final lock = t.widget<UnlockScreen>(find.byType(UnlockScreen));
     expect(lock.askBiometricNow, isFalse);

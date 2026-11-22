@@ -384,12 +384,10 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   List<TourTip> _tourTips(AppLocalizations l, TourKind kind) {
     final empty = _empty;
-    final sections = _sections;
     Rect? tilesOr(GlobalKey key) => empty ? _rectOf(_tilesKey) : _rectOf(key);
-    // An empty vault's bar is just the lock: no tabs to show yet.
-    final tabs = empty ? null : (_rectOf(_tabsKey) ?? (nativeBarOn() ? _rectOf(_barKey) : null));
+    final tabs = _rectOf(_tabsKey) ?? (nativeBarOn() ? _rectOf(_barKey) : null);
     final lockButton = _rectOf(_lockKey);
-    final holdHome = lockButton == null && _noLockButton(sections) && !nativeBarOn() ? _homeTabRect() : null;
+    final holdHome = lockButton == null && _noLockButton() && !nativeBarOn() ? _homeTabRect() : null;
     return [
       TourTip(
           id: 'add', target: () => tilesOr(_actionKey), title: l.tipAddTitle, body: l.tipAddBody),
@@ -550,7 +548,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
       final items = await rust.listItems();
       if (!mounted) return;
       // Hidden groups are left out of every list, chip and count here (hidden_features.dart).
-      setState(() => _items = groupsShown ? items : items.where((i) => i.kind != ItemKind.tag).toList());
+      final first = _items == null;
+      setState(() {
+        _items = groupsShown ? items : items.where((i) => i.kind != ItemKind.tag).toList();
+        // A vault with nothing in it opens on its welcome, whatever tab was used last.
+        if (first && vaultSections().every((s) => s == VaultSection.home || _countIn(s) == 0)) {
+          _section = VaultSection.home;
+        }
+      });
       AutoSync.seen(items); // a change here: a sync follows shortly
       _blurTip();
       _wordsTip();
@@ -640,18 +645,23 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   static bool get _hasCamera => Device.iOS || Device.android || debugCamera;
 
-  /// The sections that hold something, in a fixed order (docs/ui.md, design language).
+  /// The tabs of the bar: the overview and three kinds, held or not.
+  List<VaultSection> get _bar => barSections(_countIn);
+
+  /// The sections that hold something, in a fixed order (docs/ui.md, design language);
+  /// and the one on show while it is empty, if it has a tab or was opened to add to.
   List<VaultSection> get _sections {
-    final items = _items ?? const <rust.ItemInfo>[];
+    final bar = _bar;
     final kinds = [
       for (final s in vaultSections())
-        if (s != VaultSection.home && ((s == _section && _keepSection) || items.any((i) => _inSection(s, i)))) s,
+        if (s != VaultSection.home && ((s == _section && (_keepSection || bar.contains(s))) || _countIn(s) > 0)) s,
     ];
     // The overview comes first whenever the vault holds anything.
     return kinds.isEmpty ? kinds : [VaultSection.home, ...kinds];
   }
 
-  /// Nothing in the vault yet (tags alone do not count): the welcome with the add tiles.
+  /// Nothing in the vault yet (tags alone do not count), and no empty section opened
+  /// from the bar: the welcome with the add tiles, on the overview.
   bool get _empty => _items != null && _sections.isEmpty;
 
   /// The + in the middle (owner 2026-10-24): in notes, voice and files it does that
@@ -2999,10 +3009,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     }
   }
 
-  /// Holding the home tab locks (on by default, Settings): no lock button, as long as
-  /// the bar has a home tab to hold.
-  bool _noLockButton(List<VaultSection> sections) =>
-      holdHomeLocks() && sections.length >= 2 && sections.contains(VaultSection.home);
+  /// Holding the home tab locks (on by default, Settings): no lock button.
+  bool _noLockButton() => holdHomeLocks();
   void _holdHome() {
     if (_recordingNow) return;
     _lock();
@@ -3057,16 +3065,17 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     final page = Theme.of(context).scaffoldBackgroundColor;
     // The section on show is always one that is offered (it may have just emptied).
     final sections = _sections;
-    if (sections.isNotEmpty && !sections.contains(_section)) _section = sections.first;
+    // (Not while the items load: nothing is offered yet, and the section must stay.)
+    if (_items != null && !sections.contains(_section)) _section = VaultSection.home;
     final empty = _empty;
     // The + inside the bar's middle (Settings → Middle); the bar's centre, left of which a
     // lock button may sit.
     final centreMode = actionSide() == ActionSide.center;
-    final lockShown = !_noLockButton(sections) && !nativeBarOn();
+    final lockShown = !_noLockButton() && !nativeBarOn();
     // Left of the bar: a lock button, and the vault's badge (the overview tab).
     final leftOfBar = (lockShown ? Ui.bar + 4 : 0);
     final barW = MediaQuery.sizeOf(context).width - 20 - leftOfBar;
-    final centreX = 10 + leftOfBar + barW * centrePlusShare(barSections(sections, _countIn).length < 2 ? const [] : barSections(sections, _countIn));
+    final centreX = 10 + leftOfBar + barW * centrePlusShare(_bar);
 
     // Selecting: only the count on top; Done and Select all sit in the bar at the bottom
     // with the actions (owner 2026-10-25: every button within the thumb's reach).
@@ -3208,11 +3217,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   child: NativeVaultBar(
                     key: _barKey,
                     section: _section,
-                    sections: barSections(sections, _countIn),
+                    sections: _bar,
                     onSection: _pickSection,
                     onLock: _lock,
-                    showLock: !_noLockButton(sections),
-                    onHoldHome: _noLockButton(sections) ? _holdHome : null,
+                    showLock: !_noLockButton(),
+                    onHoldHome: _noLockButton() ? _holdHome : null,
                   ),
                 )
               else
@@ -3226,16 +3235,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   key: _barKey,
                   tabsKey: _tabsKey,
                   section: _section,
-                  sections: barSections(sections, _countIn),
+                  sections: _bar,
                   home: VaultBadge(icon: _vault.icon, color: _vault.color, size: 28),
-                  centre: centreMode && !empty ? const SizedBox(width: centrePlusSize, height: centrePlusSize) : null,
+                  centre: centreMode ? const SizedBox(width: centrePlusSize, height: centrePlusSize) : null,
                   onSection: _pickSection,
                   // Just the lock, big: no vault icon, which would hint that the phone
                   // holds other vaults (owner 2026-10-21, after user testing).
                   // Holding the home tab locks: no lock button, the sections run the
                   // full width (owner 2026-10-22).
-                  onHoldHome: _noLockButton(sections) ? _holdHome : null,
-                  lock: _noLockButton(sections)
+                  onHoldHome: _noLockButton() ? _holdHome : null,
+                  lock: _noLockButton()
                       ? null
                       : KeyedSubtree(
                           key: _lockKey,
@@ -3252,8 +3261,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
               ),
               if (_addShown)
                 Positioned.fill(
-                  // An empty vault (its tiles, no +) has the card alone, as on an edge.
-                  child: actionSide() == ActionSide.center && !empty
+                  child: actionSide() == ActionSide.center
                       // In the middle: the ways side by side just above the + (owner
                       // 2026-10-24: the fan put them too far apart).
                       ? AddRow(
@@ -3282,7 +3290,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                 ),
               // In the middle, above the quick buttons: every way with a line on what it
               // does (owner 2026-10-27).
-              if (_addShown && actionSide() == ActionSide.center && !empty)
+              if (_addShown && actionSide() == ActionSide.center)
                 Positioned(
                   left: 16,
                   right: 16,
@@ -3297,8 +3305,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   ),
                 ),
               // Above the lock (left thumb), on the right, or in the middle above the bar
-              // (Settings). An empty vault has the add tiles on screen instead.
-              if (!empty) Positioned(
+              // (Settings). An empty vault has it too, under its add tiles (owner 2026-11-22).
+              Positioned(
                 // Keyed: the column appearing above must not rebuild the button mid-slide
                 // (it would drop the finger's gesture). In the middle it floats exactly over
                 // the gap the bar leaves for it, so it stays one widget throughout.
@@ -3947,7 +3955,7 @@ class _Welcome extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final c = CsColors.of(context);
     return ListView(
-      padding: EdgeInsets.fromLTRB(16, 24, 16, math.max(24, bottomPad - 60)),
+      padding: EdgeInsets.fromLTRB(16, 24, 16, math.max(24, bottomPad)),
       children: [
         Center(child: VaultBadge(icon: vault.icon, color: vault.color, size: 84)),
         const SizedBox(height: 18),

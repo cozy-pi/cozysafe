@@ -45,11 +45,11 @@ List<VaultSection> rankedSections(int Function(VaultSection) count) {
 }
 
 /// The sections with a tab in the bar: the overview, then the three kinds the vault holds
-/// most of, left to right (owner 2026-11-03). The rest stay reached from the overview.
-List<VaultSection> barSections(List<VaultSection> sections, int Function(VaultSection) count) => [
-      if (sections.contains(VaultSection.home)) VaultSection.home,
-      ...rankedSections(count).where(sections.contains).take(3),
-    ];
+/// most of, left to right (owner 2026-11-03). Always these four, a kind with nothing in
+/// it too (owner 2026-11-22: a new vault's bar was the lock alone; with five slots the +
+/// is in the middle from the first day). The rest stay reached from the overview.
+List<VaultSection> barSections(int Function(VaultSection) count) =>
+    [VaultSection.home, ...rankedSections(count).take(3)];
 
 /// For tests and the browser preview: offer voice memos on any platform.
 bool debugVoice = false;
@@ -61,8 +61,7 @@ const _sectionPref = 'vault-section';
 
 
 /// No lock button in the bar: holding the home tab locks (owner 2026-10-22: on by
-/// default). Settings can bring the lock button back. Where the bar has no home tab
-/// (one kind of item, an empty vault) the lock button stays.
+/// default). Settings can bring the lock button back.
 const holdHomePref = 'hold-home-lock';
 bool holdHomeLocks() => Prefs.read(holdHomePref) != '0';
 
@@ -224,7 +223,7 @@ class RoundBack extends StatelessWidget {
 
 /// The bottom row: the lock on the left, then the sections in a capsule. Tapping a section
 /// switches; dragging along the capsule switches as the finger passes each one.
-/// Only [sections] that hold something are offered; with one or none, no capsule.
+/// [sections] are [barSections]: the overview and three kinds, held or not.
 class VaultBar extends StatelessWidget {
   const VaultBar({
     super.key,
