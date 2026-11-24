@@ -88,7 +88,7 @@ later (docs/backlog.md).
 | Back in a header built by hand (search, steps, a group's page, the welcome pages) | `RoundBack` | `widgets/vault_bar.dart` |
 | Glass behind anything | `Glass` (page glass), `GlassPill` (dark, over photos) | `widgets/vault_bar.dart`, `screens/glass.dart` |
 | A row in a vault list | `SelectableRow` | `widgets/selectable_row.dart` |
-| Chips over Files and the Library (All, Photos, Videos, Documents, Other) | `_fileChips`, `FileGroup` | `screens/vault_home.dart`, `file_kinds.dart` |
+| Chips over Files and the Library (All, Photos, Videos, Documents, Other) and over Passwords (All, then the kinds held) | `_chipRow`, `_fileChips`, `FileGroup`, `_passwords` | `screens/vault_home.dart`, `file_kinds.dart` |
 | A small menu at the finger (long press, ⋯), and a setting's few choices at its row (the chosen one ticked) | `showItemMenu` + `MenuEntry` | `widgets/item_menu.dart` |
 | A long page, and every sub-page of Settings (never swapped in place: owner 2026-10-31) | `pushPage` | `widgets/vault_bar.dart` |
 | Short content over the page | `showCard` | `widgets/vault_bar.dart` |
@@ -101,6 +101,7 @@ later (docs/backlog.md).
 | Pick one of a few ways inside a step (the wizard's fallback kind chooser): big cards, icon in a coloured rounded square, title and one line | `ChoiceCard` | `widgets/steps.dart` |
 | The ways to add, and a way's second choices in place | `AddCard` (`way`, `onBack`), `addSubChoices` | `widgets/vault_bar.dart` |
 | A kind of password's icon and colour | `entryIcon`, `entryKindColor`, `EntryBadge`, `EntryKindLine` | `widgets/entry_row.dart`, `widgets/vault_bar.dart` |
+| A one-time code: its row in a list, its colour, the pie for the time left | `CodeRow`, `codeColor`, `CodeRing` | `widgets/code_row.dart`, `screens/entry_page.dart` |
 | A new icon | `Sym` (Material Symbols Rounded) | `widgets/symbols.dart` |
 | Red for Delete, recording and a failure's mark | `recordRed(context)`: no red of its own anywhere | `theme.dart` |
 | Red for an error's words and a field's ring | `Theme.of(context).colorScheme.error` (as `recordRed` in dark; deeper in light, so small text reads at 4.5:1) | `theme.dart` |

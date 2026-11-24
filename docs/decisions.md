@@ -6,6 +6,31 @@ depends on memory. Details live in the linked docs; this page is the index.
 How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
 [cryptography.md](cryptography.md).
 
+## 2026-11-24 — One-time codes show in the list, as an authenticator app
+
+**Owner:** the Passwords page is to be redone, the two-factor codes first, like Google
+Authenticator.
+
+- In the Passwords list a one-time code's row (`CodeRow`) shows the code of this moment:
+  name and account on one line, the code big in the kind's blue under it, a small pie on
+  the right emptying with the time left; code and pie turn red for the last five
+  seconds. A tap copies the code (it opened the item's page before); the page (Edit,
+  Delete, the account) is behind a long press → Open.
+- The pie replaces the ring with the seconds on the item's page and in a login too, and
+  the code is blue there as well (`CodeRing`, `codeColor`).
+- This changes ADR 0009's "a list opens no content" for this one kind: a row on screen
+  reads its own document (the code's key) and drops it as the vault locks. A login's
+  document is still never read for a list, so a login's attached code shows on its page
+  only. Top Secret Mode keeps the old row: nothing read, a tap opens the page.
+- Search opened from a section's page starts narrowed to that section
+  (`SearchScreen(section:)`), its chip first and chosen; All widens it. Only the overview
+  searches everything (owner, same day); so does an empty section. A one-time code among
+  the results shows its code too.
+- Passwords has a row of chips, as Files and the Library: All, then each kind the vault
+  holds (Login · One-time code · Recovery codes); no row with one kind only. The
+  One-time code chip is the authenticator's list.
+- Still open: the rest of the Passwords page (logins, recovery codes).
+
 ## 2026-11-24 — Cozy Safe Beta says it is the beta
 
 **Owner:** the two apps sit side by side on the same phone and looked the same; the beta

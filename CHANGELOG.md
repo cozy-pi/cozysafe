@@ -4,6 +4,18 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
+## 1.0.14 (2026-11-24)
+
+A Cozy Safe Beta build. 1.0.12 and 1.0.13 were Beta builds that only marked the Beta app.
+
+### Changed
+- Passwords: a one-time code shows its code in the list, as an authenticator app does,
+  with the time it has left. A tap copies it; hold the row for its page and menu. Top
+  secret vaults keep the old row, with no code in the list.
+- Passwords: chips over the list narrow it to logins, one-time codes or recovery codes.
+- Search starts in the section it was opened from (Passwords, Notes, Files, Library,
+  Recordings); "All" searches the whole vault. From the overview it searches everything.
+
 ## 1.0.11 (2026-11-24)
 
 1.0.10 was a Cozy Safe Beta build of the same changes.

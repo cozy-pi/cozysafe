@@ -84,6 +84,7 @@ import 'plain_text_view.dart';
 import 'entry_steps.dart';
 import 'entry_page.dart';
 import '../widgets/entry_row.dart';
+import '../widgets/code_row.dart';
 
 /// Inside an open vault (docs/ui.md, vault bar): a large title, the tags as a row of
 /// chips, the content edge to edge, and floating glass at the bottom: the lock, the four
@@ -192,6 +193,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
   /// The tag open on top of the sections ("Hộ chiếu"): every section then shows only
   /// what carries it. None: everything.
   String? _tagId;
+  /// The chip picked over Passwords: one kind (`ItemKind.login`…), or null for all.
+  String? _entryKind;
   /// The chip picked over Files.
   FileGroup _fileGroup = FileGroup.all;
   /// The chip picked over the Library: all, photos or videos.
@@ -819,8 +822,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   /// A new secure item (ADR 0009): step by step, as a page (owner 2026-11-07), opening on
   /// the first step of the [kind] picked in the add card.
-  Future<void> _newEntry(String? kind) => Navigator.of(_pageContext).push<rust.ItemInfo>(
+  Future<void> _newEntry(String? kind) {
+    // Another kind than the chip chosen over Passwords: all of them, so the new one shows.
+    if (_entryKind != null && kind != _entryKind) setState(() => _entryKind = null);
+    return Navigator.of(_pageContext).push<rust.ItemInfo>(
       MaterialPageRoute(builder: (_) => Readable(child: EntryWizard(kind: kind, items: _items, tagId: _tagId))));
+  }
 
   /// A secure item opens as a page of its own, in Top secret too (ADR 0009): its rows,
   /// Edit and Delete. Never the preview over the page.
@@ -1682,7 +1689,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
     if (items == null) return;
     final result = await Navigator.of(context).push<Object>(
       MaterialPageRoute(
-          builder: (_) => Readable(child: SearchScreen(items: items, thumbnail: _thumbnail))),
+          // From a section's page the search starts on that section; from the overview, on
+          // everything (owner 2026-11-24).
+          builder: (_) => Readable(child: SearchScreen(items: items, thumbnail: _thumbnail,
+              // An empty section has nothing to narrow to.
+              section: _section == VaultSection.home || _countIn(_section) == 0 ? null : _section))),
     );
     if (result == null || !mounted || _locked) return;
     // A long press on a result: its menu, over the vault.
@@ -1863,7 +1874,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
 
   Widget _fileChips(BuildContext context, List<FileGroup> groups, FileGroup on, {ValueChanged<FileGroup>? onPick}) {
     final l = AppLocalizations.of(context);
-    final cs = Theme.of(context).colorScheme;
     String label(FileGroup g) => switch (g) {
           FileGroup.all => l.searchAll,
           FileGroup.photo => l.kindPhotos,
@@ -1871,36 +1881,67 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           FileGroup.document => l.fileGroupDocuments,
           FileGroup.other => l.fileGroupOther,
         };
+    return _chipRow(context, 'file', [
+      for (final g in groups) (g.name, label(g), g == on, () => onPick != null ? onPick(g) : setState(() => _fileGroup = g)),
+    ]);
+  }
+
+  /// A row of chips to narrow a list, one chosen (Files, the Library, Passwords): each
+  /// its key's name, its word, whether it is the chosen one, and its tap.
+  Widget _chipRow(BuildContext context, String name, List<(String, String, bool, VoidCallback)> chips) {
+    final cs = Theme.of(context).colorScheme;
     return SizedBox(
       height: Ui.chip + 12,
       child: ListView(
-        key: const ValueKey('file-chips'),
+        key: ValueKey('$name-chips'),
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(14, 2, 6, 8),
         children: [
-          for (final g in groups)
+          for (final (id, word, on, tap) in chips)
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Material(
-                key: ValueKey('file-chip-${g.name}'),
-                color: g == on ? cs.onSurface : cs.onSurface.withValues(alpha: .07),
+                key: ValueKey('$name-chip-$id'),
+                color: on ? cs.onSurface : cs.onSurface.withValues(alpha: .07),
                 shape: const StadiumBorder(),
                 child: InkWell(
                   customBorder: const StadiumBorder(),
-                  onTap: () => onPick != null ? onPick(g) : setState(() => _fileGroup = g),
+                  onTap: tap,
                   child: Container(
                     height: Ui.chip,
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     alignment: Alignment.center,
-                    child: Text(label(g),
+                    child: Text(word,
                         style: TextStyle(
-                            fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: g == on ? cs.surface : cs.onSurface)),
+                            fontSize: CsType.subhead, fontWeight: FontWeight.w600, color: on ? cs.surface : cs.onSurface)),
                   ),
                 ),
               ),
             ),
         ],
       ),
+    );
+  }
+
+  /// Passwords with a row of chips over them (owner 2026-11-24): All, then each kind
+  /// the vault holds (Login · One-time code · Recovery codes). None with one kind only:
+  /// there is nothing to narrow.
+  Widget _passwords(BuildContext context, List<rust.ItemInfo> shown) {
+    final held = [for (final k in const [ItemKind.login, ItemKind.otp, ItemKind.codes]) if (shown.any((i) => i.kind == k)) k];
+    if (held.length < 2 || _tagId != null) return _list(context, shown, notes: false);
+    final l = AppLocalizations.of(context);
+    // The chosen kind's last item went: back to all of them.
+    final kind = held.contains(_entryKind) ? _entryKind : null;
+    final list = kind == null ? shown : [for (final i in shown) if (i.kind == kind) i];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _chipRow(context, 'entry', [
+          ('all', l.searchAll, kind == null, () => setState(() => _entryKind = null)),
+          for (final k in held) (k, entryKindLabel(l, k), kind == k, () => setState(() => _entryKind = k)),
+        ]),
+        Expanded(child: _list(context, list, notes: false)),
+      ],
     );
   }
 
@@ -1982,7 +2023,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                   id: it.id,
                   drag: _drag,
                   onMenu: () => _itemMenu(it, notes ? const [] : list.where(_isMedia).toList()),
-                  child: ItemKind.isEntry(it.kind)
+                  // A one-time code shows in the list, a tap copies it (owner 2026-11-24);
+                  // not in Top Secret Mode, where it is read on its page only.
+                  child: it.kind == ItemKind.otp && !TopSecretMode.on
+                      ? CodeRow(
+                          item: it,
+                          selected: _selected.contains(it.id),
+                          selecting: _selecting,
+                          onOpen: () => _openItem(it, const []),
+                        )
+                      : ItemKind.isEntry(it.kind)
                       ? EntryRow(
                           item: it,
                           selected: _selected.contains(it.id),
@@ -2431,7 +2481,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
           onOrder: (ids) => _dragOrder = ids,
         ),
       VaultSection.library => _libraryWithChips(context, shown),
-      VaultSection.password => _list(context, shown, notes: false),
+      VaultSection.password => _passwords(context, shown),
     };
   }
 
@@ -2463,6 +2513,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
         _section = s;
         _keepSection = false;
         if (s == VaultSection.file) _fileGroup = FileGroup.all;
+        if (s == VaultSection.password) _entryKind = null;
         Prefs.write('vault-section', s.name);
       }),
       onCategory: (k) => setState(() {

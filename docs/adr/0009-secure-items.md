@@ -34,7 +34,7 @@ kinds in the same shape.
 | Layer | Where | Holds | Decrypted |
 |---|---|---|---|
 | Summary | `summary` in the item record (`.meta`, the index), sealed with the Master Key | account (user name or email), web sites' host names | on unlock, to list, search and later fill in |
-| Document | `.data`, encrypted with the item's own key | everything, secrets included | only when that item is opened, copied or filled in |
+| Document | `.data`, encrypted with the item's own key | everything, secrets included | only when that item is opened, copied or filled in; a one-time code's also while its row is on screen (below) |
 
 A list of a thousand logins opens no content, and no password is in memory while
 scrolling. The summary is always **derived from the document**
@@ -44,6 +44,13 @@ content's `data_hash`). It is read again, on every unlock and after every sync
 the field, rewrote the record) or names other content (sync took the other device's,
 a version was restored). That repair writes the record as it is, no new revision, and
 never stops a vault from opening. A summary that cannot be read counts as missing.
+
+**Codes in the list** (owner 2026-11-24): a one-time code is only useful at a glance,
+as in an authenticator app, so in the Passwords list its row (`CodeRow`) reads its own
+document when it comes on screen and shows the code of this moment; a tap copies it. The
+key is held by that row alone and dropped as the vault locks or the row leaves the
+screen. Nothing else changes: a login's document (its password, and a code attached to
+it) is never read for a list, and in Top Secret Mode no row reads anything.
 
 ### Edits on two devices, and stale saves
 
