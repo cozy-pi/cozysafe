@@ -1300,7 +1300,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.info_rounded,
                   color: SettingsHue.grey,
                   title: l.aboutVersion,
-                  value: version,
+                  value: betaBuild ? '$version · beta' : version,
                   onTap: _versionTap,
                   chevron: false,
                 ),

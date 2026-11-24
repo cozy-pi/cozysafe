@@ -23,6 +23,7 @@ import 'restore_flow.dart';
 import 'top_secret_page.dart' show restartForMode;
 import 'vault_home.dart';
 import '../theme.dart';
+import '../widgets/beta_tag.dart';
 import '../widgets/drive_logo.dart';
 import '../widgets/readable.dart';
 import '../top_secret_mode.dart';
@@ -654,6 +655,8 @@ class _UnlockScreenState extends State<UnlockScreen> with WidgetsBindingObserver
                       alignment: Alignment.center,
                       children: [
                         Align(alignment: Alignment.centerLeft, child: _moreMenu(l)),
+                        // Cozy Safe Beta only: which of the two apps this is.
+                        const Align(alignment: Alignment.centerRight, child: BetaTag()),
                         if (bio != null)
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 60),

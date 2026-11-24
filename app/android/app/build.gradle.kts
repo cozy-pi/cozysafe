@@ -33,6 +33,8 @@ android {
         versionName = flutter.versionName
         if (beta) applicationIdSuffix = ".beta"
         manifestPlaceholders["appLabel"] = if (beta) "Cozy Safe Beta" else "Cozy Safe"
+        // The beta's icon says BETA (tools/beta-icon.sh draws it).
+        manifestPlaceholders["appIcon"] = if (beta) "@mipmap/ic_launcher_beta" else "@mipmap/ic_launcher"
     }
 
     // Release key comes from CI secrets (ANDROID_KEYSTORE_*); without them (local

@@ -19,6 +19,8 @@ import '../secret_key_store.dart';
 import '../src/rust/api/vault.dart' as rust;
 import '../sync/awake.dart';
 import '../theme.dart';
+import '../build_info.dart';
+import '../widgets/beta_tag.dart';
 import '../temp_files.dart';
 import '../test_login.dart';
 import '../originals.dart';
@@ -2546,6 +2548,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> with WidgetsBindingOb
                       style: TextStyle(fontSize: open != null ? CsType.title1 : CsType.largeTitle, fontWeight: FontWeight.w700, letterSpacing: -.5),
                     ),
                   ),
+                  // Cozy Safe Beta only: which of the two apps this is.
+                  if (betaBuild) const Padding(padding: EdgeInsets.only(left: 8), child: BetaTag()),
                 ]),
                 if (count != null && bytes != null)
                   Row(mainAxisSize: MainAxisSize.min, children: [

@@ -6,6 +6,21 @@ depends on memory. Details live in the linked docs; this page is the index.
 How a vault stores data and how it is protected, as built: [data-model.md](data-model.md),
 [cryptography.md](cryptography.md).
 
+## 2026-11-24 — Cozy Safe Beta says it is the beta
+
+**Owner:** the two apps sit side by side on the same phone and looked the same; the beta
+must be told apart at a glance, on its icon and inside the app, with a small "beta"
+somewhere tidy.
+
+- Icon: the app's icon with a gold band saying BETA across the bottom (`tools/beta-icon.sh`
+  draws it from `branding/icon-1024.png`; the PNGs are committed). Android picks it with
+  the `appIcon` manifest placeholder (`CS_BETA=1`), iOS with the `AppIconBeta` icon set
+  (testflight.yml switches `ASSETCATALOG_COMPILER_APPICON_NAME`).
+- In the app: `BetaTag`, a small "beta" pill, at the bottom right of the lock screen and
+  beside the big title of every tab; Settings → version ends in "· beta". The app knows
+  from `--dart-define=BETA=true`, which CI passes to a beta build only. Cozy Safe itself
+  shows nothing. The word is not translated: it is the app's name.
+
 ## 2026-11-22 — The bar always has four tabs and the +
 
 **Owner:** a vault just made had a bar of one button (the lock). The bar must always have
