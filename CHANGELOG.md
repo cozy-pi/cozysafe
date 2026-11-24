@@ -4,7 +4,9 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
-## 1.0.10 (2026-11-22)
+## 1.0.11 (2026-11-24)
+
+1.0.10 was a Cozy Safe Beta build of the same changes.
 
 ### Changed
 - The bottom bar always has its four tabs and the + in the middle: the overview and the

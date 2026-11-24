@@ -76,7 +76,8 @@ To do:
 
 Test sign-in (a button that opens a test vault) is off unless a run asks for it with
 `-f test_login=true`. Never send such a build to production: check the run's inputs first.
-The run uploads to TestFlight, Play internal and alpha, and makes GitHub release v1.0.0.
+The run uploads to TestFlight and Play internal (not the closed test, since 2026-11-22),
+and makes the GitHub release.
 Note the build number from the run summary.
 
 - [ ] Install that exact build from TestFlight and Play internal; go through: new vault,
