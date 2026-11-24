@@ -4,9 +4,10 @@ Each release has one version name on every platform (iPhone, Android, macOS,
 Windows, Linux); the build number only matters to the stores. Dates are UTC.
 Versions before 1.0.0 were preview builds.
 
-## 1.0.14 (2026-11-24)
+## 1.0.15 (2026-11-24)
 
-A Cozy Safe Beta build. 1.0.12 and 1.0.13 were Beta builds that only marked the Beta app.
+1.0.14 was a Cozy Safe Beta build of the same changes; 1.0.12 and 1.0.13 were Beta builds
+that only marked the Beta app.
 
 ### Changed
 - Passwords: a one-time code shows its code in the list, as an authenticator app does,
