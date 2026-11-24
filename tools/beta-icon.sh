@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Cozy Safe Beta's app icon: the app's own icon with a small gold pill saying BETA at the
-# bottom, so the two apps are told apart on the home screen. Run after branding/icon-1024.png
-# changes (needs ImageMagick); the PNGs it writes are committed.
+# Cozy Safe Beta's app icon: the app's own icon with "beta" in gold, small, in the top
+# right corner (clear of the edge, which phones round off), so the two apps are told apart
+# on the home screen. Run after branding/icon-1024.png changes (needs ImageMagick); the
+# PNGs it writes are committed.
 #   tools/beta-icon.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -9,8 +10,7 @@ src=branding/icon-1024.png
 out=branding/icon-beta-1024.png
 font=${BETA_ICON_FONT:-/System/Library/Fonts/Supplemental/Arial Bold.ttf}
 magick "$src" -resize 1024x1024 \
-  -fill '#f3d08e' -draw 'roundrectangle 372,872 652,972 50,50' \
-  -font "$font" -fill '#165b4c' -pointsize 74 -kerning 8 -gravity north -annotate +0+887 'BETA' \
+  -font "$font" -fill '#f3d08e' -pointsize 112 -kerning 4 -gravity northeast -annotate +112+92 'beta' \
   -alpha off "$out"
 # Android: one PNG a density, next to the app's own (the manifest picks by build).
 for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do

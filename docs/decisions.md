@@ -12,8 +12,8 @@ How a vault stores data and how it is protected, as built: [data-model.md](data-
 must be told apart at a glance, on its icon and inside the app, with a small "beta"
 somewhere tidy.
 
-- Icon: the app's icon with a small gold pill saying BETA under the dial (owner: the first one, a band
-  across the bottom, was far too big) (`tools/beta-icon.sh`
+- Icon: the app's icon with "beta" in gold, lower case, small, in the top right corner, clear of
+  the edge (owner, after a band across the bottom and then a pill under the dial) (`tools/beta-icon.sh`
   draws it from `branding/icon-1024.png`; the PNGs are committed). Android picks it with
   the `appIcon` manifest placeholder (`CS_BETA=1`), iOS with the `AppIconBeta` icon set
   (testflight.yml switches `ASSETCATALOG_COMPILER_APPICON_NAME`).
