@@ -542,7 +542,7 @@ everywhere, easy to hit with a thumb.
 - **Wide phone screens** (iPhone Duo's inner display, 669 pt; owner 2026-11-17): the
   phone layout up to 700 pt, but the bar stops at `barMaxWidth` (520), centred, and the
   library starts at five photos a row from `wideishPhone` (600) until pinched.
-- **Cozy Safe Beta is marked** (owner 2026-11-24): BETA across its icon, and `BetaTag`
+- **Cozy Safe Beta is marked** (owner 2026-11-24): a small BETA pill at the bottom of its icon, and `BetaTag`
   (a small "beta" pill) on the lock screen's bottom right and beside each tab's big title;
   Settings' version line ends in "· beta". Never in Cozy Safe itself.
 - **Bottom bar: always four tabs** (owner 2026-11-22): the overview and the three kinds

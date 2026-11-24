@@ -155,7 +155,7 @@ jobs:
           # Cozy Safe Beta: its own bundle id, so it installs next to Cozy Safe with its own data.
           if os.environ.get('BETA'):
               s = s.replace(old, 'PRODUCT_BUNDLE_IDENTIFIER = com.cozypi.cozysafe.beta;')
-              # Its own icon, with BETA across it (tools/beta-icon.sh).
+              # Its own icon, with a small BETA pill (tools/beta-icon.sh).
               icon = 'ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;'
               assert s.count(icon) == 3, s.count(icon)
               s = s.replace(icon, 'ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBeta;')
