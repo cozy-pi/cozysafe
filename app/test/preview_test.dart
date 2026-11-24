@@ -80,6 +80,7 @@ import 'package:cozysafe/screens/overview.dart';
 import 'package:cozysafe/widgets/brand.dart';
 import 'package:cozysafe/widgets/identity.dart';
 import 'package:cozysafe/widgets/readable.dart';
+import 'package:cozysafe/build_info.dart';
 import 'package:cozysafe/widgets/vault_bar.dart';
 import 'package:cozysafe/widgets/toast.dart';
 import 'package:cozysafe/widgets/countdown.dart';
@@ -555,6 +556,7 @@ void _screen(String name, String caption, Widget Function() home,
       QuickLook.debugStillAudio = false;
       QuickLook.debugPdfPage = null;
       CoachTour.debugStart = 0;
+      debugBeta = name.startsWith('beta-');
       TopSecretMode.on = _topSecretShot(name);
       NewVaultScreen.debugSkipMode = false;
       TopSecretMode.debugClosesItself = false; // the owner's iPhone
@@ -640,6 +642,16 @@ void main() {
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
   _screen('lock', 'Màn khoá', lock);
+  Finder betaTag() => find.byKey(const ValueKey('beta-tag'));
+  _screen('beta-lock', 'Cozy Safe Beta · màn khoá', lock,
+      change: 'MỚI (chỉ app Beta): chữ “beta” nhỏ ở góc dưới bên phải màn khoá. App chính không có',
+      marks: [betaTag]);
+  _screen('beta-home', 'Cozy Safe Beta · Tổng quan', home, section: 'home',
+      change: 'MỚI (chỉ app Beta): chữ “beta” nhỏ cạnh tiêu đề lớn của mọi mục',
+      marks: [betaTag]);
+  _screen('beta-library', 'Cozy Safe Beta · Thư viện', home, section: 'library',
+      change: 'MỚI (chỉ app Beta): chữ “beta” cạnh tiêu đề, ở mục nào cũng có',
+      marks: [betaTag]);
   _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, act: (t) async {
     await t.enterText(find.byType(TextField).first, 'matkhau');
     await t.pump();
@@ -761,17 +773,13 @@ void main() {
     await g.moveTo(t.getCenter(find.byKey(const ValueKey('add-card-camera'))));
     await t.pump(const Duration(milliseconds: 200));
   });
-  Finder bar() => find.byType(VaultBar);
   void only(bool Function(ItemInfo) keep) => _itemsNow = _items.where((i) => i.kind == ItemKind.tag || keep(i)).toList();
   _screen('empty', 'Két trống · thanh dưới đã đủ 4 mục + nút +', home, section: 'library',
-      change: 'Két mới tạo: thanh dưới có đủ Tổng quan · Thư viện · + · Tệp · Ghi chú (trước chỉ có mỗi nút khoá). Nút + ở chính giữa ngay từ đầu; các ô thêm lớn vẫn còn. Giữ biểu tượng két (ô đầu) để khoá',
-      marks: [bar],
       setup: () {
     debugCamera = true;
     _itemsNow = const [];
   });
   _screen('empty-add', 'Két trống · bấm +', home, section: 'home',
-      change: 'MỚI: két trống cũng bấm + được, ra hàng nút nhanh và thẻ đủ mọi cách thêm như két đã có đồ',
       setup: () {
     debugCamera = true;
     _itemsNow = const [];
@@ -780,8 +788,6 @@ void main() {
     await t.pump(const Duration(milliseconds: 600));
   });
   _screen('empty-tab-note', 'Két trống · bấm mục Ghi chú', home, section: 'home',
-      change: 'MỚI: mục chưa có gì vẫn mở được từ thanh dưới, hiện trang trống của mục đó',
-      marks: [bar],
       setup: () {
     debugCamera = true;
     _itemsNow = const [];
@@ -790,8 +796,6 @@ void main() {
     await t.pump(const Duration(milliseconds: 600));
   });
   _screen('empty-tab-library', 'Két trống · bấm mục Thư viện', home, section: 'home',
-      change: 'MỚI: trang trống của Thư viện, mở từ thanh dưới',
-      marks: [bar],
       setup: () {
     debugCamera = true;
     _itemsNow = const [];
@@ -800,31 +804,21 @@ void main() {
     await t.pump(const Duration(milliseconds: 600));
   });
   _screen('empty-left', 'Két trống · nút + đặt bên trái (Cài đặt)', home, section: 'home',
-      change: 'Nút + đặt bên cạnh: thanh cũng luôn đủ 4 mục, nút + nổi phía trên',
-      marks: [bar],
       setup: () {
     _leftCamera();
     _itemsNow = const [];
   });
   _screen('empty-lock-button', 'Két trống · tắt “Giữ nút trang chủ để khoá” (có nút khoá)', home, section: 'home',
-      change: 'Bật nút khoá trong Cài đặt: nút khoá đứng bên trái, thanh vẫn đủ 4 mục, + vẫn giữa thanh',
-      marks: [bar],
       setup: () {
     debugCamera = true;
     Prefs.write('hold-home-lock', '0');
     _itemsNow = const [];
   });
   _screen('one-type', 'Chỉ có ghi chú · thanh vẫn đủ 4 mục', home, section: 'note',
-      change: 'Chỉ có một loại: Ghi chú (đang có đồ) đứng đầu, hai ô còn lại là Thư viện và Tệp (trước: chỉ Tổng quan · + · Ghi chú)',
-      marks: [bar],
       setup: () => only((i) => i.kind == ItemKind.note));
   _screen('two-types', 'Có ảnh và ghi chú · thanh vẫn đủ 4 mục', home, section: 'home',
-      change: 'Có hai loại: trước là 2 ô bên trái, 1 ô bên phải (lệch); giờ luôn 2 ô mỗi bên',
-      marks: [bar],
       setup: () => only((i) => i.kind == ItemKind.note || i.kind == ItemKind.photo));
   _screen('ts-empty', 'Két Tuyệt mật trống (không có Thư viện)', home, section: 'home',
-      change: 'Tuyệt mật không có Thư viện: Tổng quan · Tệp · + · Ghi chú · Mật khẩu',
-      marks: [bar],
       setup: () => _itemsNow = const []);
   _screen('note-editor', 'Sửa ghi chú', () => NoteScreen(item: _items.firstWhere((i) => i.kind == ItemKind.note)));
   _screen('note-new', 'Ghi chú mới', () => const NoteScreen());
