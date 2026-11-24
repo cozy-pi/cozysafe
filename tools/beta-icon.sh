@@ -10,7 +10,7 @@ src=branding/icon-1024.png
 out=branding/icon-beta-1024.png
 font=${BETA_ICON_FONT:-/System/Library/Fonts/Supplemental/Arial Bold.ttf}
 magick "$src" -resize 1024x1024 \
-  -font "$font" -fill '#f3d08e' -pointsize 112 -kerning 4 -gravity northeast -annotate +112+92 'beta' \
+  -font "$font" -fill '#f3d08e' -pointsize 78 -kerning 3 -gravity northeast -annotate +118+104 'beta' \
   -alpha off "$out"
 # Android: one PNG a density, next to the app's own (the manifest picks by build).
 for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
