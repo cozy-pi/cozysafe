@@ -206,7 +206,8 @@ running."
 - **Secure items** (ADR 0009): passwords and recovery codes are masked (always the same
   dots), revealed one tap at a time, hidden again after 30 seconds, when the app leaves
   the foreground and on lock; one-time codes show, as in any authenticator, since they
-  expire. Lists show only the account and the site. Their content is read through
+  expire. Lists show only the account and the site, and a one-time code's row its code
+  (read by that row while on screen, dropped on lock; not in Top Secret Mode). Their content is read through
   `entry_json` alone: Rust refuses `item_content`, `export_item` and `history_content`
   for them, so no viewer, share or export can reach a password, whatever a screen asks.
   Items of a kind from a newer version are refused the same way.

@@ -13,8 +13,9 @@ import 'package:cozysafe/lock_resume.dart';
 import 'package:cozysafe/entries/qr.dart';
 import 'package:cozysafe/screens/entry_editor.dart';
 import 'package:cozysafe/screens/entry_steps.dart';
+import 'package:cozysafe/widgets/code_row.dart';
 import 'package:cozysafe/widgets/secure_menu.dart';
-import 'package:cozysafe/widgets/vault_bar.dart' show debugVoice;
+import 'package:cozysafe/widgets/vault_bar.dart' show debugVoice, entryKindColor;
 import 'package:cozysafe/item_kind.dart';
 import 'package:cozysafe/l10n/app_localizations.dart';
 import 'package:cozysafe/platform.dart';
@@ -240,6 +241,46 @@ void main() {
     await _settle(t, 2);
     expect(_clipboard.last, code.replaceAll(' ', ''));
     expect(find.text('Copied'), findsOneWidget);
+    await t.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets('a one-time code in a list shows its code; a tap copies it, a lock drops it', (t) async {
+    _fake.put('o1', ItemKind.otp, 'Google', {
+      'secret': 'JBSWY3DPEHPK3PXP',
+      'algo': 'SHA1',
+      'digits': 6,
+      'period': 30,
+      'issuer': 'Google',
+      'account': 'na@example.com',
+    });
+    Prefs.write(SecureClipboard.pref, '0'); // never cleared: no timer left behind
+    // 19 seconds left, then 4.
+    var at = DateTime.fromMillisecondsSinceEpoch(1795000001000);
+    codeClock = () => at;
+    addTearDown(() => codeClock = DateTime.now);
+    var opened = 0;
+    Widget row({bool selecting = false}) => Scaffold(
+        body: CodeRow(item: _fake.items.single, selected: false, selecting: selecting, onOpen: () => opened++));
+    await _pump(t, row());
+    const key = ValueKey('code-row-value-o1');
+    final code = t.widget<Text>(find.byKey(key)).data!;
+    expect(code, groupedCode(const Totp(secret: 'JBSWY3DPEHPK3PXP').code(at)));
+    expect(t.widget<Text>(find.byKey(key)).style!.color, entryKindColor(ItemKind.otp));
+    await t.tap(find.byType(CodeRow));
+    await _settle(t, 2);
+    expect(_clipboard.last, code.replaceAll(' ', ''));
+    expect(opened, 0, reason: 'a tap copies, it does not open the page');
+    // The last five seconds are red.
+    at = at.add(const Duration(seconds: 15));
+    await t.pump(const Duration(seconds: 1));
+    expect(t.widget<Text>(find.byKey(key)).style!.color, isNot(entryKindColor(ItemKind.otp)));
+    // Locked: the key is dropped, dots show, and a tap falls back to the list's own.
+    vaultLock.set(true);
+    await t.pump();
+    expect(t.widget<Text>(find.byKey(key)).data, isNot(matches(RegExp(r'\d'))));
+    vaultLock.set(false);
+    await _settle(t, 2);
+    expect(t.widget<Text>(find.byKey(key)).data, matches(RegExp(r'^\d{3} \d{3}$')));
     await t.pump(const Duration(seconds: 4));
   });
 

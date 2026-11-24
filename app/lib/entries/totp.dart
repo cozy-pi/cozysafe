@@ -2,6 +2,9 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 
+/// The time one-time codes are worked out for. Tests and mockups set it; the app never does.
+DateTime Function() codeClock = DateTime.now;
+
 /// A one-time code (TOTP, RFC 6238) as services hand it out: a secret in base 32, most
 /// often in an `otpauth://totp/…` link inside a QR code. docs/adr/0009-secure-items.md.
 class Totp {

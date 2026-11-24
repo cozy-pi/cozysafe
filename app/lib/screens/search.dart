@@ -11,6 +11,8 @@ import '../widgets/private_thumb.dart';
 import '../widgets/item_menu.dart';
 import '../widgets/vault_bar.dart';
 import '../widgets/entry_row.dart';
+import '../widgets/code_row.dart';
+import '../top_secret_mode.dart';
 import 'overview.dart';
 import '../item_kind.dart';
 import '../file_kinds.dart';
@@ -30,7 +32,11 @@ class SearchMenu {
 }
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, required this.items, required this.thumbnail});
+  const SearchScreen({super.key, required this.items, required this.thumbnail, this.section});
+
+  /// Opened from this section's page: the search starts narrowed to it (owner
+  /// 2026-11-24: only the overview searches everything); the All chip widens it.
+  final VaultSection? section;
 
   /// Everything in the vault, groups included (a group matches by its name).
   final List<rust.ItemInfo> items;
@@ -46,7 +52,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final Map<String, String> _noteText = {};
   final Map<String, String> _noteRaw = {};
   /// Narrowed to one section (a chip, or a tile on the empty screen).
-  VaultSection? _kind;
+  late VaultSection? _kind = widget.section;
 
   List<rust.ItemInfo> get _things => widget.items.where((i) => i.kind != ItemKind.tag).toList();
   List<rust.ItemInfo> get _groups => widget.items.where((i) => i.kind == ItemKind.tag).toList();
@@ -258,7 +264,8 @@ class _SearchScreenState extends State<SearchScreen> {
         padding: const EdgeInsets.fromLTRB(Ui.groupSide, 2, 6, 8),
         children: [
           chip(l.searchAll, _query.text.trim().isEmpty ? null : all, _kind == null, () => setState(() => _kind = null)),
-          for (final e in counts.entries)
+          // The section the search was opened from comes first, where the eye is.
+          for (final e in [...counts.entries.where((e) => e.key == widget.section), ...counts.entries.where((e) => e.key != widget.section)])
             chip(sectionLabel(l, e.key), e.value, _kind == e.key, () => setState(() => _kind = _kind == e.key ? null : e.key),
                 key: ValueKey('search-chip-${e.key.name}')),
         ],
@@ -389,6 +396,18 @@ class _SearchScreenState extends State<SearchScreen> {
     // A secure item: its account and web site under its name, as in its list.
     final line = !ItemKind.isKnown(it.kind) ? l.needsNewerVersion : (ItemKind.isEntry(it.kind) ? entryLine(it) : '');
     final under = snippet == null ? (line.isEmpty ? null : line) : (notePreviews() ? snippet : l.foundInText);
+    // A one-time code shows its code here too, a tap copies it (as in its list).
+    if (it.kind == ItemKind.otp && !TopSecretMode.on) {
+      return CodeRow(
+        item: it,
+        selected: false,
+        selecting: false,
+        onOpen: () => Navigator.of(context).pop(it),
+        onLongPress: () => Navigator.of(context).pop(SearchMenu(it)),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        badge: 46,
+      );
+    }
     return InkWell(
       onTap: () => Navigator.of(context).pop(it),
       onLongPress: () => Navigator.of(context).pop(SearchMenu(it)),

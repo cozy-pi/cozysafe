@@ -15,6 +15,8 @@ import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride
 import 'package:cozysafe/links.dart';
 import 'package:cozysafe/widgets/private_thumb.dart';
 import 'package:cozysafe/widgets/selectable_row.dart';
+import 'package:cozysafe/widgets/code_row.dart';
+import 'package:cozysafe/entries/totp.dart';
 import 'package:cozysafe/biometric.dart';
 import 'package:cozysafe/bulk_text.dart';
 import 'package:cozysafe/secret_key_store.dart';
@@ -135,6 +137,14 @@ final _entries = [
   _item('pw6', ItemKind.codes, 'GitHub · mã dự phòng', 400, ago: _day * 20, account: 'nguyenvana'),
 ];
 
+/// More one-time codes, to show the list as an authenticator app's.
+final _codes = [
+  _item('otp1', ItemKind.otp, 'Google', 160, ago: _day, account: 'nguyenvana@gmail.com', fav: true),
+  _item('otp2', ItemKind.otp, 'GitHub', 160, ago: _day * 3, account: 'nguyenvana'),
+  _item('otp3', ItemKind.otp, 'Binance', 160, ago: _day * 5, account: 'an.nguyen@proton.me'),
+  _item('otp4', ItemKind.otp, 'Shopee', 160, ago: _day * 6, account: '0912 345 678'),
+];
+
 /// What the vault refuses in one shot: ids it will not restore or delete for good, ids
 /// whose content cannot be read, and notes still being read (a search not done yet).
 Set<String> _stuck = const {};
@@ -160,6 +170,10 @@ const _entryDocs = <String, Map<String, Object?>>{
   'pw3': {'v': 1, 'username': '0912 345 678', 'password': 'Vcb#2026-an', 'urls': ['https://vcbdigibank.vietcombank.com.vn']},
   'pw4': {'v': 1, 'password': 'hoaMai2024@', 'notes': 'Mạng 5G: TP-Link_5G_BaNgoai'},
   'pw5': {'v': 1, ..._totpKey, 'issuer': 'Facebook', 'account': 'nguyenvana@gmail.com'},
+  'otp1': {'v': 1, 'secret': 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', 'algo': 'SHA1', 'digits': 6, 'period': 30, 'issuer': 'Google', 'account': 'nguyenvana@gmail.com'},
+  'otp2': {'v': 1, 'secret': 'MFRGGZDFMZTWQ2LKNNWG23TPOBYXE43U', 'algo': 'SHA1', 'digits': 6, 'period': 30, 'issuer': 'GitHub', 'account': 'nguyenvana'},
+  'otp3': {'v': 1, 'secret': 'KRSXG5CTMVRXEZLUKN2XAZLSKNSWG4TF', 'algo': 'SHA1', 'digits': 6, 'period': 30, 'issuer': 'Binance', 'account': 'an.nguyen@proton.me'},
+  'otp4': {'v': 1, 'secret': 'ONSWG4TFORPXGZLDOJSXIX3TMVRXEZLU', 'algo': 'SHA1', 'digits': 6, 'period': 30, 'issuer': 'Shopee', 'account': '0912 345 678'},
   'pw6': {'v': 1, 'account': 'nguyenvana', 'codes': [
     {'code': '4f2a-91c7', 'used': true}, {'code': '8b3e-07d4'}, {'code': 'c61f-5a28'}, {'code': '29de-b083'},
     {'code': 'e7a5-3c19'}, {'code': '0d84-f6b2'}, {'code': '73c0-a9e5'}, {'code': 'b5f9-2d61'},
@@ -558,6 +572,8 @@ void _screen(String name, String caption, Widget Function() home,
       CoachTour.debugStart = 0;
       debugBeta = name.startsWith('beta-');
       TopSecretMode.on = _topSecretShot(name);
+      // One-time codes at a fixed moment: 19 seconds left, or 4 where the code is about to change.
+      codeClock = () => DateTime.fromMillisecondsSinceEpoch(1795000000000 + (name == 'codes-ending' ? 16000 : 1000));
       NewVaultScreen.debugSkipMode = false;
       TopSecretMode.debugClosesItself = false; // the owner's iPhone
       BiometricUnlock.debugKind = BiometricKind.face; // a screen that wants a fingerprint sets it
@@ -642,16 +658,9 @@ void main() {
   Widget lock() => const UnlockScreen(libraryDir: '', askBiometricNow: false);
 
   _screen('lock', 'Màn khoá', lock);
-  Finder betaTag() => find.byKey(const ValueKey('beta-tag'));
-  _screen('beta-lock', 'Cozy Safe Beta · màn khoá', lock,
-      change: 'MỚI (chỉ app Beta): chữ “beta” nhỏ ở góc dưới bên phải màn khoá. App chính không có',
-      marks: [betaTag]);
-  _screen('beta-home', 'Cozy Safe Beta · Tổng quan', home, section: 'home',
-      change: 'MỚI (chỉ app Beta): chữ “beta” nhỏ cạnh tiêu đề lớn của mọi mục',
-      marks: [betaTag]);
-  _screen('beta-library', 'Cozy Safe Beta · Thư viện', home, section: 'library',
-      change: 'MỚI (chỉ app Beta): chữ “beta” cạnh tiêu đề, ở mục nào cũng có',
-      marks: [betaTag]);
+  _screen('beta-lock', 'Cozy Safe Beta · màn khoá', lock);
+  _screen('beta-home', 'Cozy Safe Beta · Tổng quan', home, section: 'home');
+  _screen('beta-library', 'Cozy Safe Beta · Thư viện', home, section: 'library');
   _screen('lock-typing', 'Màn khoá · đang gõ mật khẩu', lock, act: (t) async {
     await t.enterText(find.byType(TextField).first, 'matkhau');
     await t.pump();
@@ -1002,7 +1011,9 @@ void main() {
   ItemInfo entry(String id) => _entries.firstWhere((i) => i.id.startsWith(id));
   void withEntries() => _itemsNow = [..._items, ..._entries];
   _screen('passwords', 'Mật khẩu · danh sách', home, section: 'password', setup: withEntries);
-  _screen('password-login', 'Mật khẩu · mở một đăng nhập', () => EntryScreen(item: entry('pw1')));
+  _screen('password-login', 'Mật khẩu · mở một đăng nhập', () => EntryScreen(item: entry('pw1')),
+      change: 'Mã xác minh gắn trong một đăng nhập cũng màu xanh và có hình quạt',
+      marks: [() => find.byKey(const ValueKey('entry-code'))]);
   _screen('password-copied', 'Mật khẩu · vừa chép mật khẩu', () => EntryScreen(item: entry('pw1')),
       act: (t) async {
     // The toast a copy shows (copying itself leaves a 90-second timer behind the shot).
@@ -1093,7 +1104,69 @@ void main() {
     await tapStep(t, 'steps-site-google.com');
     await tapStep(t, 'steps-codes-paste');
   });
-  _screen('password-otp', 'Mật khẩu · mã xác minh', () => EntryScreen(item: entry('pw5')));
+  void withCodes() => _itemsNow = [..._items, ..._entries, ..._codes];
+  Finder codeRows() => find.byType(CodeRow);
+  _screen('codes-list', 'Mật khẩu · danh sách có nhiều mã xác minh', home, section: 'password', setup: withCodes,
+      change: 'MỚI: mã xác minh hiện ngay trong danh sách như Google Authenticator: tên và tài khoản ở trên, mã to màu xanh ở dưới, hình quạt bên phải vơi dần theo thời gian còn lại. Không phải mở từng mục nữa. Đăng nhập và mã dự phòng giữ nguyên',
+      marks: [codeRows]);
+  _screen('codes-chip-otp', 'Mật khẩu · bấm chip “Mã xác minh”', home, section: 'password', setup: withCodes,
+      change: 'MỚI: hàng chip lọc theo loại trên trang Mật khẩu (Tất cả · Đăng nhập · Mã xác minh · Mã dự phòng), như ở Tệp và Thư viện. Chỉ hiện loại két đang có; két chỉ có một loại thì không có hàng chip. Bấm “Mã xác minh” là thành màn như Google Authenticator',
+      marks: [() => find.byKey(const ValueKey('entry-chips'))],
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('entry-chip-otp')));
+    await t.pumpAndSettle();
+  });
+  _screen('codes-chip-login', 'Mật khẩu · bấm chip “Đăng nhập”', home, section: 'password', setup: withCodes,
+      change: 'MỚI: chip “Đăng nhập” chỉ còn các đăng nhập',
+      marks: [() => find.byKey(const ValueKey('entry-chips'))],
+      act: (t) async {
+    await t.tap(find.byKey(const ValueKey('entry-chip-login')));
+    await t.pumpAndSettle();
+  });
+  _screen('codes-ending', 'Mật khẩu · mã còn 4 giây', home, section: 'password', setup: withCodes,
+      change: 'MỚI: 5 giây cuối, mã và hình quạt chuyển đỏ để biết mã sắp đổi, đừng gõ vội',
+      marks: [codeRows]);
+  _screen('codes-search', 'Mật khẩu · bấm kính lúp', home, section: 'password', setup: withCodes,
+      change: 'MỚI: đang ở trang Mật khẩu mà bấm tìm thì tìm trong mật khẩu luôn (chip Mật khẩu đứng đầu, chọn sẵn; bấm Tất cả để tìm cả két). Trước đây trang nào cũng mở ra tìm cả két',
+      act: (t) async {
+    await t.tap(find.byIcon(Icons.search).first);
+    await t.pumpAndSettle();
+  });
+  _screen('codes-search-typed', 'Mật khẩu · tìm “git”', home, section: 'password', setup: withCodes,
+      change: 'MỚI: kết quả tìm cũng hiện mã xác minh, chạm để chép',
+      marks: [codeRows],
+      act: (t) async {
+    await t.tap(find.byIcon(Icons.search).first);
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const ValueKey('search-field')), 'git');
+    await t.pumpAndSettle();
+  });
+  _screen('codes-search-notes', 'Ghi chú · bấm kính lúp', home, section: 'note',
+      change: 'MỚI: trang nào cũng vậy, đang ở Ghi chú thì tìm trong ghi chú (Tệp, Thư viện, Ghi âm cũng thế). Chỉ Tổng quan là tìm cả két',
+      act: (t) async {
+    await t.tap(find.byIcon(Icons.search).first);
+    await t.pumpAndSettle();
+  });
+  _screen('codes-copied', 'Mật khẩu · chạm vào một dòng mã', home, section: 'password', setup: withCodes,
+      change: 'MỚI: chạm vào dòng là chép mã luôn (trước đây chạm là mở trang của mục). Lời báo như khi chép mật khẩu',
+      marks: [_toast],
+      act: (t) async {
+    // The toast a copy shows (copying itself leaves a 90-second timer behind the shot).
+    final at = t.element(find.byType(VaultHomeScreen));
+    showToast(at, AppLocalizations.of(at).entryCopied(SecureClipboard.standard), icon: Icons.copy_rounded);
+    await t.pump(const Duration(milliseconds: 400));
+  });
+  _screen('codes-menu', 'Mật khẩu · giữ lâu một dòng mã', home, section: 'password', setup: withCodes,
+      change: 'Muốn xem trang của mã (sửa, xoá, tài khoản) thì giữ lâu → Mở. Menu này có sẵn từ trước, không đổi',
+      act: (t) async {
+    await t.longPress(find.byType(CodeRow).first);
+    await t.pumpAndSettle();
+  });
+  _screen('ts-codes-list', 'Két Tuyệt mật · Mật khẩu: mã không hiện trong danh sách', home, section: 'password', setup: withCodes,
+      change: 'Két Tuyệt mật giữ như cũ: danh sách không đọc khoá của mã, chạm vào mới mở trang và thấy mã');
+  _screen('password-otp', 'Mật khẩu · mã xác minh', () => EntryScreen(item: entry('pw5')),
+      change: 'Trang của mã: số màu xanh, hình quạt thay cho vòng tròn có số giây, cho giống danh sách',
+      marks: [() => find.byKey(const ValueKey('entry-otp'))]);
   _screen('password-codes', 'Mật khẩu · mã dự phòng', () => EntryScreen(item: entry('pw6')));
   _screen('password-codes-shown', 'Mật khẩu · mã dự phòng · bấm mắt', () => EntryScreen(item: entry('pw6')),
       act: (t) async {
@@ -1565,7 +1638,7 @@ void main() {
     unawaited(nameNewItem(t.element(find.byType(VaultHomeScreen)), _items.firstWhere((i) => i.kind == ItemKind.photo)));
     await t.pumpAndSettle();
   });
-  _screen('ts-place-settings', 'Chế độ tuyệt mật · khiên đỏ nhỏ ở góc nút Cài đặt', home, section: 'home',);
+  _screen('ts-place-settings', 'Chế độ tuyệt mật · khiên đỏ nhỏ ở góc nút Cài đặt', home, section: 'home');
   _screen('ts-home', 'Két Tuyệt mật · Tổng quan', home, section: 'home');
   _screen('settings-mode-off', 'Cài đặt · thẻ Chế độ tuyệt mật (đang tắt)', () => settings(vault),);
   _screen('ts-settings', 'Cài đặt · thẻ Chế độ tuyệt mật (đang bật)', () => settings(vault),);

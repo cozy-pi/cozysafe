@@ -523,6 +523,15 @@ everywhere, easy to hit with a thumb.
   kinds held, plus Passwords even at 0 (count faint), so a vault without one still has a
   way in. Its empty page has a New password button that opens the add card on its three
   kinds. Search's tiles keep showing only what is held (they narrow results).
+- **One-time codes show in the Passwords list** (owner 2026-11-24, as Google
+  Authenticator): `CodeRow`: name and account on one line, the code big and blue under
+  it, a pie for the time left, red for the last five seconds. A tap copies; long press →
+  Open for its page. Not in Top Secret Mode (the plain row, a tap opens the page).
+- **Chips over Passwords** (owner 2026-11-24): All, then each kind held (`_passwords`,
+  `_chipRow`, shared with Files and the Library); none with one kind only.
+- **Search starts where you are** (owner 2026-11-24): from a section's page it is
+  narrowed to that section, its chip first; from the overview, or an empty section, it
+  searches everything.
 - **Bottom bar: the app's own by default**; on iOS 26 Debug can switch to the system's
   (`NativeVaultBar`, UIKit tab bar + glass lock). Change one, change the other.
 - **Hold the home tab to lock** (owner 2026-10-22), no lock button by default.

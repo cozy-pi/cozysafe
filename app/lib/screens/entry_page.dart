@@ -20,7 +20,7 @@ import '../widgets/confirm_delete.dart';
 import '../widgets/entry_row.dart';
 import '../widgets/link_card.dart';
 import '../widgets/toast.dart';
-import '../widgets/vault_bar.dart' show GlassButton;
+import '../widgets/vault_bar.dart' show GlassButton, entryKindColor;
 import 'common.dart';
 import 'entry_editor.dart';
 import 'history.dart' show historyWhen;
@@ -448,15 +448,15 @@ class _EntryScreenState extends State<EntryScreen> with WidgetsBindingObserver, 
 
   /// A login's one-time code: live, in groups, a ring for the time left; a tap copies.
   Widget _codeField(BuildContext context, AppLocalizations l, Totp totp) {
-    final now = DateTime.now();
+    final now = codeClock();
     final code = totp.code(now);
     return EntryField(
       key: const ValueKey('entry-code'),
       label: l.entryKindOtp,
       value: Text(groupedCode(code),
           key: const ValueKey('entry-code-value'),
-          style: const TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w700, letterSpacing: 1.5,
-              fontFeatures: [FontFeature.tabularFigures()])),
+          style: TextStyle(fontSize: CsType.title2, fontWeight: FontWeight.w700, letterSpacing: 1.5,
+              color: codeColor(context, totp.secondsLeft(now)), fontFeatures: const [FontFeature.tabularFigures()])),
       onTap: () => copySecret(context, code),
       trailing: [
         Padding(
@@ -472,7 +472,7 @@ class _EntryScreenState extends State<EntryScreen> with WidgetsBindingObserver, 
   List<Widget> _otp(BuildContext context, AppLocalizations l, Entry e) {
     final c = CsColors.of(context);
     final totp = e.totp;
-    final now = DateTime.now();
+    final now = codeClock();
     final code = totp?.code(now);
     return [
       if (totp != null && code != null)
@@ -493,8 +493,9 @@ class _EntryScreenState extends State<EntryScreen> with WidgetsBindingObserver, 
                       fit: BoxFit.scaleDown,
                       child: Text(groupedCode(code),
                           key: const ValueKey('entry-code-value'),
-                          style: const TextStyle(fontSize: CsType.largeTitle, fontWeight: FontWeight.w700,
-                              letterSpacing: 3, fontFeatures: [FontFeature.tabularFigures()])),
+                          style: TextStyle(fontSize: CsType.largeTitle, fontWeight: FontWeight.w700,
+                              letterSpacing: 3, color: codeColor(context, totp.secondsLeft(now)),
+                              fontFeatures: const [FontFeature.tabularFigures()])),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -705,29 +706,45 @@ class _CopyButton extends StatelessWidget {
       );
 }
 
-/// The time a one-time code has left, as a small ring that empties; red for the last
-/// five seconds.
+/// A one-time code's colour: its kind's blue, red for the last five seconds (as
+/// authenticator apps warn that it is about to change).
+Color codeColor(BuildContext context, int left) => left <= 5 ? recordRed(context) : entryKindColor(ItemKind.otp);
+
+/// The time a one-time code has left, as a small pie that empties (owner 2026-11-24: as
+/// authenticator apps draw it); red for the last five seconds.
 class CodeRing extends StatelessWidget {
-  const CodeRing({super.key, required this.left, required this.period});
+  const CodeRing({super.key, required this.left, required this.period, this.size = 24});
   final int left;
   final int period;
+  final double size;
 
   @override
-  Widget build(BuildContext context) {
-    final ink = Theme.of(context).colorScheme.onSurface;
-    final color = left <= 5 ? recordRed(context) : ink;
-    return SizedBox.square(
-      key: const ValueKey('entry-code-ring'),
-      dimension: 26,
-      child: Stack(alignment: Alignment.center, children: [
-        CircularProgressIndicator(
-          value: left / period,
-          strokeWidth: 2.5,
-          color: color,
-          backgroundColor: ink.withValues(alpha: .12),
+  Widget build(BuildContext context) => Semantics(
+        label: '$left',
+        child: SizedBox.square(
+          key: const ValueKey('entry-code-ring'),
+          dimension: size,
+          child: CustomPaint(painter: _PiePainter(left / period, codeColor(context, left))),
         ),
-        Text('$left', style: TextStyle(fontSize: CsType.caption2, fontWeight: FontWeight.w700, color: color)),
-      ]),
-    );
+      );
+}
+
+class _PiePainter extends CustomPainter {
+  const _PiePainter(this.part, this.color);
+  final double part;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.shortestSide / 2;
+    final centre = size.center(Offset.zero);
+    canvas.drawCircle(centre, r, Paint()..color = color.withValues(alpha: .16));
+    // What is left, from twelve o'clock: it shrinks clockwise as the time goes.
+    final sweep = 2 * 3.141592653589793 * part.clamp(0.0, 1.0);
+    canvas.drawArc(Rect.fromCircle(center: centre, radius: r), -3.141592653589793 / 2 + (2 * 3.141592653589793 - sweep), sweep, true,
+        Paint()..color = color);
   }
+
+  @override
+  bool shouldRepaint(_PiePainter old) => old.part != part || old.color != color;
 }
